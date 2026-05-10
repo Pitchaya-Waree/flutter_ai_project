@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:math_expressions/math_expressions.dart'; 
+import 'package:math_expressions/math_expressions.dart';
 
-import 'solutions_screen.dart'; 
+import 'solutions_screen.dart';
 import 'constants/app_colors.dart'; // 🔴 นำเข้าสี
 import 'widgets/math_display.dart'; // 🔴 นำเข้าหน้าจอแสดงผล
 import 'widgets/math_keyboard.dart'; // 🔴 นำเข้าแป้นพิมพ์
 
 class EditorScreen extends StatefulWidget {
-  const EditorScreen({Key? key}) : super(key: key);
+  // 🟢 เปลี่ยนมาใช้ super.key แทน สั้นลงและลบ warning ได้
+  const EditorScreen({super.key});
 
   @override
-  _EditorScreenState createState() => _EditorScreenState();
+  State<EditorScreen> createState() => _EditorScreenState();
 }
 
 class _EditorScreenState extends State<EditorScreen> {
@@ -28,10 +29,11 @@ class _EditorScreenState extends State<EditorScreen> {
           .replaceAll('π', '3.14159265359')
           .replaceAll('√', 'sqrt');
 
-      Parser p = Parser();
+      GrammarParser p = GrammarParser();
       Expression exp = p.parse(finalEquation);
       ContextModel cm = ContextModel();
-      double eval = exp.evaluate(EvaluationType.REAL, cm);
+      RealEvaluator evaluator = RealEvaluator(cm);
+      double eval = evaluator.evaluate(exp).toDouble();
 
       setState(() {
         _result = eval.toString();
@@ -62,12 +64,18 @@ class _EditorScreenState extends State<EditorScreen> {
       } else if (value == "=") {
         _calculate();
       } else {
-        if (_result.isNotEmpty) _result = "";
+        if (_result.isNotEmpty) {
+          _result = "";
+        }
 
         String addValue = value;
-        if (value == "x²") addValue = "^2";
-        else if (["sin", "cos", "tan", "ln", "log"].contains(value)) addValue = "$value(";
-        else if (value == "√") addValue = "√(";
+        if (value == "x²") {
+          addValue = "^2";
+        } else if (["sin", "cos", "tan", "ln", "log"].contains(value)) {
+          addValue = "$value(";
+        } else if (value == "√") {
+          addValue = "√(";
+        }
 
         _equation = (_equation == "0") ? addValue : _equation + addValue;
       }
@@ -87,7 +95,11 @@ class _EditorScreenState extends State<EditorScreen> {
         ),
         title: const Text(
           "Solver",
-          style: TextStyle(color: Color(0xFF8BA08E), fontWeight: FontWeight.bold, fontSize: 24),
+          style: TextStyle(
+            color: Color(0xFF8BA08E),
+            fontWeight: FontWeight.bold,
+            fontSize: 24,
+          ),
         ),
         centerTitle: true,
       ),
@@ -107,7 +119,8 @@ class _EditorScreenState extends State<EditorScreen> {
             child: MathKeyboard(
               isScientific: _isScientific,
               onKeyPress: _onKeyPress,
-              onToggleMode: () => setState(() => _isScientific = !_isScientific),
+              onToggleMode: () =>
+                  setState(() => _isScientific = !_isScientific),
             ),
           ),
 
@@ -120,20 +133,27 @@ class _EditorScreenState extends State<EditorScreen> {
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.darkGreenBtnColor,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   elevation: 0,
                 ),
                 onPressed: () {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => SolutionsScreen(equation: _equation),
+                      builder: (context) =>
+                          SolutionsScreen(equation: _equation),
                     ),
                   );
                 },
                 child: const Text(
                   "แก้สมการ",
-                  style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),

@@ -5,12 +5,14 @@ import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:image_cropper/image_cropper.dart';
+// import 'package:flutter/foundation.dart';
 
 import 'editor_screen.dart';
 import 'solutions_screen.dart';
-import 'bottom_nav_bar.dart'; // 🔴 ดึง Nav Bar ที่แยกไว้มาใช้งาน
+import 'bottom_nav_bar.dart';
 
 // ----- CAMERA OVERLAY PAINTER -----
+// กรองแสงหน้ากล้องเพื่อจำลองกรอบ (ยังคงไว้ตามโครงสร้างเดิมของคุณ)
 class CameraOverlayPainter extends CustomPainter {
   final Color overlayColor;
   final double frameWidth;
@@ -56,28 +58,50 @@ class CameraOverlayPainter extends CustomPainter {
       Paint()..blendMode = BlendMode.clear,
     );
 
-    final rrect = RRect.fromRectAndRadius(frameRect, Radius.circular(borderRadius));
+    final rrect = RRect.fromRectAndRadius(
+      frameRect,
+      Radius.circular(borderRadius),
+    );
     final path = Path();
 
-    // วาดมุมทั้ง 4
     path.moveTo(rrect.left, rrect.top + cornerLength);
     path.lineTo(rrect.left, rrect.top + borderRadius);
-    path.quadraticBezierTo(rrect.left, rrect.top, rrect.left + borderRadius, rrect.top);
+    path.quadraticBezierTo(
+      rrect.left,
+      rrect.top,
+      rrect.left + borderRadius,
+      rrect.top,
+    );
     path.lineTo(rrect.left + cornerLength, rrect.top);
 
     path.moveTo(rrect.right - cornerLength, rrect.top);
     path.lineTo(rrect.right - borderRadius, rrect.top);
-    path.quadraticBezierTo(rrect.right, rrect.top, rrect.right, rrect.top + borderRadius);
+    path.quadraticBezierTo(
+      rrect.right,
+      rrect.top,
+      rrect.right,
+      rrect.top + borderRadius,
+    );
     path.lineTo(rrect.right, rrect.top + cornerLength);
 
     path.moveTo(rrect.right, rrect.bottom - cornerLength);
     path.lineTo(rrect.right, rrect.bottom - borderRadius);
-    path.quadraticBezierTo(rrect.right, rrect.bottom, rrect.right - borderRadius, rrect.bottom);
+    path.quadraticBezierTo(
+      rrect.right,
+      rrect.bottom,
+      rrect.right - borderRadius,
+      rrect.bottom,
+    );
     path.lineTo(rrect.right - cornerLength, rrect.bottom);
 
     path.moveTo(rrect.left + cornerLength, rrect.bottom);
     path.lineTo(rrect.left + borderRadius, rrect.bottom);
-    path.quadraticBezierTo(rrect.left, rrect.bottom, rrect.left, rrect.bottom - borderRadius);
+    path.quadraticBezierTo(
+      rrect.left,
+      rrect.bottom,
+      rrect.left,
+      rrect.bottom - borderRadius,
+    );
     path.lineTo(rrect.left, rrect.bottom - cornerLength);
 
     canvas.drawPath(path, paintStroke);
@@ -94,7 +118,7 @@ class ScanScreen extends StatefulWidget {
   const ScanScreen({super.key, required this.cameras});
 
   @override
-  _ScanScreenState createState() => _ScanScreenState();
+  State<ScanScreen> createState() => _ScanScreenState();
 }
 
 class _ScanScreenState extends State<ScanScreen> {
@@ -107,7 +131,7 @@ class _ScanScreenState extends State<ScanScreen> {
     super.initState();
     _controller = CameraController(
       widget.cameras[0],
-      ResolutionPreset.high,
+      ResolutionPreset.high, // ปรับความละเอียดให้สูงเพื่อการแสกนที่แม่นยำ
       enableAudio: false,
     );
     _initializeControllerFuture = _controller.initialize();
@@ -119,16 +143,19 @@ class _ScanScreenState extends State<ScanScreen> {
     super.dispose();
   }
 
-  Future<void> _cropImage(File imageFile) async {
+  // 🔴 ฟังก์ชันใหม่: แสดงหน้าจอตัดรูปภาพ (Crop) เพื่อให้ผู้ใช้ปรับกรอบ
+  Future<void> _cropImage(String sourcePath) async {
     CroppedFile? croppedFile = await ImageCropper().cropImage(
-      sourcePath: imageFile.path,
+      sourcePath: sourcePath,
+      // 🔴 ย้าย aspectRatioPresets เข้ามาไว้ข้างใน uiSettings
       uiSettings: [
         AndroidUiSettings(
-          toolbarTitle: 'ครอบตัดโจทย์คณิตศาสตร์',
+          toolbarTitle: 'ปรับกรอบครอบโจทย์',
           toolbarColor: Colors.green[800],
           toolbarWidgetColor: Colors.white,
           initAspectRatio: CropAspectRatioPreset.original,
-          lockAspectRatio: false,
+          lockAspectRatio: false, // อนุญาตให้ปรับสัดส่วนเองได้ฟรี
+          // 🔴 ของ Android ใส่ตรงนี้
           aspectRatioPresets: [
             CropAspectRatioPreset.original,
             CropAspectRatioPreset.square,
@@ -137,7 +164,8 @@ class _ScanScreenState extends State<ScanScreen> {
           ],
         ),
         IOSUiSettings(
-          title: 'ครอบตัดโจทย์',
+          title: 'ปรับกรอบครอบโจทย์',
+          // 🔴 ของ iOS ใส่ตรงนี้
           aspectRatioPresets: [
             CropAspectRatioPreset.original,
             CropAspectRatioPreset.square,
@@ -148,12 +176,14 @@ class _ScanScreenState extends State<ScanScreen> {
       ],
     );
 
+    // ถ้ายืนยันการตัดรูป (croppedFile ไม่เป็น null) ให้ส่งรูปไปหน้า Solutions
     if (croppedFile != null) {
-      _processImage(File(croppedFile.path));
+      _navigateToSolutions(File(croppedFile.path));
     }
   }
 
-  Future<void> _processImage(File finalImageFile) async {
+  // 🔴 3. ฟังก์ชันใหม่: นำทางไปยังหน้า SolutionsScreen พร้อมส่งรูป
+  void _navigateToSolutions(File finalImageFile) {
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -163,9 +193,12 @@ class _ScanScreenState extends State<ScanScreen> {
   }
 
   Future<void> _pickFromGallery() async {
-    final XFile? pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+    final XFile? pickedFile = await _picker.pickImage(
+      source: ImageSource.gallery,
+    );
     if (pickedFile != null) {
-      _cropImage(File(pickedFile.path));
+      // 🔴 4. แทนที่จะส่งไปโดยตรง ให้ส่งไปตัดรูปก่อน
+      _cropImage(pickedFile.path);
     }
   }
 
@@ -173,9 +206,9 @@ class _ScanScreenState extends State<ScanScreen> {
     try {
       await _initializeControllerFuture;
       final image = await _controller.takePicture();
-      _cropImage(File(image.path));
+      _cropImage(image.path);
     } catch (e) {
-      print('Error capture: $e');
+      debugPrint('Error capture: $e');
     }
   }
 
@@ -260,7 +293,10 @@ class _ScanScreenState extends State<ScanScreen> {
                         backgroundColor: Colors.grey[200],
                         radius: 28,
                         child: IconButton(
-                          icon: Icon(Icons.photo_library_outlined, color: Colors.grey[600]),
+                          icon: Icon(
+                            Icons.photo_library_outlined,
+                            color: Colors.grey[600],
+                          ),
                           onPressed: _pickFromGallery,
                         ),
                       ),
@@ -272,7 +308,10 @@ class _ScanScreenState extends State<ScanScreen> {
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             color: Colors.white,
-                            border: Border.all(color: Colors.grey[300]!, width: 4),
+                            border: Border.all(
+                              color: Colors.grey[300]!,
+                              width: 4,
+                            ),
                           ),
                           child: Center(
                             child: Container(
@@ -290,11 +329,16 @@ class _ScanScreenState extends State<ScanScreen> {
                         backgroundColor: Colors.grey[200],
                         radius: 28,
                         child: IconButton(
-                          icon: Icon(Icons.calculate_outlined, color: Colors.grey[600]),
+                          icon: Icon(
+                            Icons.calculate_outlined,
+                            color: Colors.grey[600],
+                          ),
                           onPressed: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (context) => const EditorScreen()),
+                              MaterialPageRoute(
+                                builder: (context) => const EditorScreen(),
+                              ),
                             );
                           },
                         ),
@@ -305,11 +349,10 @@ class _ScanScreenState extends State<ScanScreen> {
               ],
             );
           } else {
-            return const Center(child: CircularProgressIndicator(color: Colors.green));
+            return const Center(child: CircularProgressIndicator());
           }
         },
       ),
-      // เรียกใช้ Nav Bar จากไฟล์ใหม่
       bottomNavigationBar: MathSolverBottomNavBar(
         selectedIndex: 0,
         onItemTapped: (index) {
