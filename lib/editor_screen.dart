@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:math_expressions/math_expressions.dart'; // สำหรับการคำนวณ
-import 'solutions_screen.dart';
+import 'solutions_screen.dart'; // นำเข้าหน้าวิธีทำ
 
 class EditorScreen extends StatefulWidget {
   const EditorScreen({Key? key}) : super(key: key);
@@ -22,7 +22,7 @@ class _EditorScreenState extends State<EditorScreen> {
   final Color darkGreenBtnColor = const Color(0xFF4E6B50);
   final Color lightGreyKeyColor = const Color(0xFFEFEFEF);
 
-  // ฟังก์ชันคำนวณผลลัพธ์
+  // ฟังก์ชันคำนวณผลลัพธ์แบบ Real-time
   void _calculate() {
     if (_equation.isEmpty || _equation == "0") return;
     try {
@@ -69,16 +69,17 @@ class _EditorScreenState extends State<EditorScreen> {
       } else {
         // จัดการการพิมพ์สัญลักษณ์พิเศษ
         String addValue = value;
-        if (value == "x²")
+        if (value == "x²") {
           addValue = "^2";
-        else if (value == "sin" ||
+        } else if (value == "sin" ||
             value == "cos" ||
             value == "tan" ||
             value == "ln" ||
-            value == "log")
+            value == "log") {
           addValue = "$value(";
-        else if (value == "√")
+        } else if (value == "√") {
           addValue = "√(";
+        }
 
         if (_equation == "0") {
           _equation = addValue;
@@ -125,12 +126,33 @@ class _EditorScreenState extends State<EditorScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  "โหมดแก้ไข",
-                  style: TextStyle(
-                    color: Colors.grey,
-                    fontWeight: FontWeight.bold,
-                  ),
+                // หัวข้อ โหมดแก้ไข และ ปุ่มถังขยะ
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      "โหมดแก้ไข",
+                      style: TextStyle(
+                        color: Colors.grey,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    InkWell(
+                      onTap: () => _onKeyPress("AC"), // เคลียร์ค่าทั้งหมด
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade100,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.delete_outline,
+                          size: 20,
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 const Spacer(),
                 Align(
@@ -150,6 +172,7 @@ class _EditorScreenState extends State<EditorScreen> {
                             color: Colors.black87,
                           ),
                         ),
+                        // เคอร์เซอร์กระพริบจำลอง
                         Container(
                           margin: const EdgeInsets.only(left: 4, bottom: 4),
                           width: 2,
@@ -160,7 +183,7 @@ class _EditorScreenState extends State<EditorScreen> {
                     ),
                   ),
                 ),
-                if (_result.isNotEmpty)
+                if (_result.isNotEmpty && _result != "Error")
                   Align(
                     alignment: Alignment.centerRight,
                     child: Text(
@@ -203,11 +226,11 @@ class _EditorScreenState extends State<EditorScreen> {
                   elevation: 0,
                 ),
                 onPressed: () {
+                  // กดปุ่มแก้สมการ ให้ส่งสมการ _equation ไปที่หน้า SolutionsScreen
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) =>
-                          SolutionsScreen(equation: _equation),
+                      builder: (context) => SolutionsScreen(equation: _equation),
                     ),
                   );
                 },

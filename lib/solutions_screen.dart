@@ -2,7 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http; // 🔴 ต้องเพิ่ม import http
+import 'package:http/http.dart' as http; 
+import 'package:flutter_dotenv/flutter_dotenv.dart'; 
 
 // --- โมเดลข้อมูลสำหรับเก็บวิธีทำ ---
 class SolutionStep {
@@ -79,12 +80,21 @@ class _SolutionsScreenState extends State<SolutionsScreen> {
     });
 
     try {
-      // ใช้ API Key จากไฟล์ main ของคุณ
-      final String apiKey = 'AIzaSyDd1Zh8Ea0-qRjXEmW-nQIqKQzE3VypSy0';
-      final String apiUrl =
-          'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$apiKey';
+      // 🔴 ดึงค่า API Key จากไฟล์ .env ที่ซ่อนไว้
+      final String apiKey = dotenv.env['GEMINI_API_KEY'] ?? ''; 
+      
+      if (apiKey.isEmpty) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = "ไม่พบ API Key ในระบบ กรุณาตรวจสอบไฟล์ .env";
+        });
+        return;
+      }
 
-      // คำสั่ง Prompt ที่คุณระบุมา
+      // ใช้ apiKey ที่ดึงมาต่อเข้ากับ URL
+      final String apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=$apiKey';
+
+      // คำสั่ง Prompt
       final String systemInstruction =
           """คุณคือผู้เชี่ยวชาญด้านคณิตศาสตร์ ฉันจะส่งรูปภาพสมการ หรือข้อความสมการให้คุณ ให้คุณแก้สมการนั้นและแสดงวิธีทำทีละขั้นตอน และ คุณต้องตอบกลับมาในรูปแบบ JSON เท่านั้น ตามโครงสร้างนี้:
 {
@@ -250,6 +260,7 @@ class _SolutionsScreenState extends State<SolutionsScreen> {
             const SizedBox(height: 16),
             Text(
               _errorMessage!,
+              textAlign: TextAlign.center,
               style: const TextStyle(color: Colors.red, fontSize: 16),
             ),
             const SizedBox(height: 16),

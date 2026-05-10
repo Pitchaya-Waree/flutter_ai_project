@@ -1,79 +1,14 @@
 // lib/main.dart
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'package:path/path.dart' as path;
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart'; // 🔴 นำเข้า dotenv เพื่อโหลดค่า API Key ตอนเริ่มแอป
+
 import 'editor_screen.dart';
 import 'solutions_screen.dart';
-import 'package:http/http.dart' as http;
-
-// ----- API SERVICE -----
-class ApiService {
-  // 1. ใส่ API Key ของคุณที่นี่
-  final String _apiKey = 'AIzaSyDd1Zh8Ea0-qRjXEmW-nQIqKQzE3VypSy0';
-
-  Future<Map<String, dynamic>?> solveEquation(File imageFile) async {
-    // 2. URL ของ Gemini (ใช้รุ่น 1.5 Flash)
-    final String apiUrl =
-        'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$_apiKey';
-
-    try {
-      // 3. แปลงรูปภาพเป็น Base64
-      final bytes = await imageFile.readAsBytes();
-      final base64Image = base64Encode(bytes);
-
-      // 4. สร้าง Payload ส่งไปให้ Gemini
-      final Map<String, dynamic> requestBody = {
-        "contents": [
-          {
-            "parts": [
-              {
-                "text":
-                    "Analyze this math problem. Solve it step by step. Output ONLY valid JSON matching this structure: {\"originalEquation\": \"...\", \"topics\": [\"...\"], \"steps\": [{\"title\": \"...\", \"mathExpression\": \"...\", \"explanation\": \"...\"}], \"finalAnswer\": \"...\"}",
-              },
-              {
-                "inline_data": {
-                  "mime_type": "image/jpeg", // ปรับตามประเภทรูปภาพ
-                  "data": base64Image,
-                },
-              },
-            ],
-          },
-        ],
-        // บังคับให้ Gemini ตอบเป็น JSON
-        "generationConfig": {"response_mime_type": "application/json"},
-      };
-
-      // 5. ส่ง Request
-      final response = await http.post(
-        Uri.parse(apiUrl),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode(requestBody),
-      );
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        // ดึงข้อความ JSON ออกมาจาก Response ของ Gemini
-        String aiResponseText =
-            data['candidates'][0]['content']['parts'][0]['text'];
-
-        // แปลงข้อความนั้นเป็น Map ส่งกลับไปให้ SolutionsScreen ของเรา
-        return json.decode(aiResponseText);
-      } else {
-        print('API Error: ${response.body}');
-        return null;
-      }
-    } catch (e) {
-      print('Exception: $e');
-      return null;
-    }
-  }
-}
 
 // ----- BOTTOM NAV BAR WIDGET -----
 class MathSolverBottomNavBar extends StatelessWidget {
@@ -89,32 +24,32 @@ class MathSolverBottomNavBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         boxShadow: [
           BoxShadow(color: Colors.black12, blurRadius: 10, spreadRadius: 2),
         ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         child: BottomNavigationBar(
           items: [
             BottomNavigationBarItem(
-              icon: Icon(Icons.camera_alt_outlined),
+              icon: const Icon(Icons.camera_alt_outlined),
               label: 'Scan',
               activeIcon: _buildActiveIcon(Icons.camera_alt_outlined),
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.calculate_outlined),
+              icon: const Icon(Icons.calculate_outlined),
               label: 'Editor',
               activeIcon: _buildActiveIcon(Icons.calculate_outlined),
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.summarize_outlined),
+              icon: const Icon(Icons.summarize_outlined),
               label: 'Solutions',
               activeIcon: _buildActiveIcon(Icons.summarize_outlined),
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.history_outlined),
+              icon: const Icon(Icons.history_outlined),
               label: 'History',
               activeIcon: _buildActiveIcon(Icons.history_outlined),
             ),
@@ -128,8 +63,8 @@ class MathSolverBottomNavBar extends StatelessWidget {
           backgroundColor: Colors.white,
           showSelectedLabels: true,
           showUnselectedLabels: true,
-          selectedLabelStyle: TextStyle(fontSize: 12),
-          unselectedLabelStyle: TextStyle(fontSize: 12),
+          selectedLabelStyle: const TextStyle(fontSize: 12),
+          unselectedLabelStyle: const TextStyle(fontSize: 12),
         ),
       ),
     );
@@ -137,7 +72,7 @@ class MathSolverBottomNavBar extends StatelessWidget {
 
   Widget _buildActiveIcon(IconData iconData) {
     return Container(
-      padding: EdgeInsets.all(8),
+      padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
         color: Colors.green[100],
         shape: BoxShape.circle,
@@ -259,8 +194,7 @@ class ScanScreen extends StatefulWidget {
 class _ScanScreenState extends State<ScanScreen> {
   late CameraController _controller;
   late Future<void> _initializeControllerFuture;
-  final ApiService _apiService = ApiService();
-  final ImagePicker _picker = ImagePicker(); // 🔴 สร้างตัวแปรสำหรับเลือกรูป
+  final ImagePicker _picker = ImagePicker(); 
 
   @override
   void initState() {
@@ -279,9 +213,9 @@ class _ScanScreenState extends State<ScanScreen> {
     super.dispose();
   }
 
-  // ฟังก์ชันส่วนกลางสำหรับส่งรูปไป AI และแสดง Loading
+  // ฟังก์ชันส่วนกลางสำหรับส่งรูปไป AI 
   Future<void> _processImage(File imageFile) async {
-    // แค่สั่งเปิดหน้า SolutionsScreen แล้วส่งรูปไปให้เลย AI จะทำงานในหน้านั้นเอง
+    // นำทางไปหน้า SolutionsScreen พร้อมส่งรูปภาพไปให้ AI แสกน
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -290,7 +224,7 @@ class _ScanScreenState extends State<ScanScreen> {
     );
   }
 
-  // 🔴 ฟังก์ชันสำหรับเปิด Gallery
+  // ฟังก์ชันสำหรับเปิด Gallery
   Future<void> _pickFromGallery() async {
     final XFile? pickedFile = await _picker.pickImage(
       source: ImageSource.gallery,
@@ -316,10 +250,10 @@ class _ScanScreenState extends State<ScanScreen> {
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios, color: Colors.black),
+          icon: const Icon(Icons.arrow_back_ios, color: Colors.black),
           onPressed: () {},
         ),
-        title: Text(
+        title: const Text(
           "Solver",
           style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
         ),
@@ -328,7 +262,7 @@ class _ScanScreenState extends State<ScanScreen> {
         centerTitle: true,
         actions: [
           IconButton(
-            icon: Icon(Icons.history_outlined, color: Colors.black),
+            icon: const Icon(Icons.history_outlined, color: Colors.black),
             onPressed: () {},
           ),
         ],
@@ -355,7 +289,7 @@ class _ScanScreenState extends State<ScanScreen> {
                     ),
                   ),
                 ),
-                Positioned(
+                const Positioned(
                   bottom: 220,
                   left: 0,
                   right: 0,
@@ -376,7 +310,7 @@ class _ScanScreenState extends State<ScanScreen> {
                       color: Colors.white.withOpacity(0.5),
                     ),
                     child: IconButton(
-                      icon: Icon(Icons.flash_off, color: Colors.white),
+                      icon: const Icon(Icons.flash_off, color: Colors.white),
                       onPressed: () {},
                     ),
                   ),
@@ -388,7 +322,7 @@ class _ScanScreenState extends State<ScanScreen> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      // 🔴 ปุ่ม Gallery ที่แก้ไขแล้ว
+                      // ปุ่ม Gallery
                       CircleAvatar(
                         backgroundColor: Colors.grey[200],
                         radius: 28,
@@ -397,10 +331,10 @@ class _ScanScreenState extends State<ScanScreen> {
                             Icons.photo_library_outlined,
                             color: Colors.grey[600],
                           ),
-                          onPressed:
-                              _pickFromGallery, // เรียกฟังก์ชันเปิด Gallery
+                          onPressed: _pickFromGallery, 
                         ),
                       ),
+                      // ปุ่ม Shutter (ถ่ายรูป)
                       GestureDetector(
                         onTap: _capturePhoto,
                         child: Container(
@@ -426,6 +360,7 @@ class _ScanScreenState extends State<ScanScreen> {
                           ),
                         ),
                       ),
+                      // ปุ่มไปหน้า เครื่องคิดเลข (Editor)
                       CircleAvatar(
                         backgroundColor: Colors.grey[200],
                         radius: 28,
@@ -450,7 +385,7 @@ class _ScanScreenState extends State<ScanScreen> {
               ],
             );
           } else {
-            return Center(
+            return const Center(
               child: CircularProgressIndicator(color: Colors.green),
             );
           }
@@ -460,17 +395,17 @@ class _ScanScreenState extends State<ScanScreen> {
         selectedIndex: 0,
         onItemTapped: (index) {
           if (index == 1) {
-            // กดปุ่ม Editor (ที่เคยทำไว้เผื่อต้องการ)
+            // กดปุ่ม Editor (เครื่องคิดเลข)
             Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => const EditorScreen()),
             );
           } else if (index == 2) {
-            // 🔴 กดปุ่ม Solutions
+            // กดปุ่ม Solutions (วิธีทำ)
             Navigator.push(
               context,
               MaterialPageRoute(
-                // ส่งค่าว่างๆ ไปก่อน เพราะเราแค่กดเข้ามาดูเฉยๆ ไม่ได้มีสมการส่งมา
+                // ส่งค่าว่างๆ ไปก่อนเมื่อกดดูประวัติ/วิธีทำล่าสุด
                 builder: (context) => const SolutionsScreen(),
               ),
             );
@@ -481,23 +416,13 @@ class _ScanScreenState extends State<ScanScreen> {
   }
 }
 
-// ----- MAIN APP WRAPPER -----
-class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return const MaterialApp(
-      title: 'Math Solver AI',
-      debugShowCheckedModeBanner: false,
-      home: Scaffold(body: Center(child: CircularProgressIndicator())),
-    );
-  }
-}
-
 // ----- MAIN ENTRY POINT -----
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // 🔴 โหลดไฟล์ .env ก่อนเพื่อรับค่า API Key
+  await dotenv.load(fileName: ".env");
+
   final cameras = await availableCameras();
   runApp(
     MaterialApp(
