@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-import 'scan_screen.dart'; // 🔴 เรียกใช้หน้ากล้องถ่ายรูปที่เราแยกไฟล์ไว้
+import 'scan_screen.dart'; 
 
 Future<void> main() async {
   // รับรองว่า Widgets ถูก Initialized ก่อนเรียกปลั๊กอิน
