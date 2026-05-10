@@ -7,11 +7,11 @@ class MathKeyboard extends StatelessWidget {
   final VoidCallback onToggleMode;
 
   const MathKeyboard({
-    Key? key,
+    super.key,
     required this.isScientific,
     required this.onKeyPress,
     required this.onToggleMode,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

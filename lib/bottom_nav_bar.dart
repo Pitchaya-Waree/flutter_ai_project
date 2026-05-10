@@ -37,11 +37,6 @@ class MathSolverBottomNavBar extends StatelessWidget {
               label: 'Solutions',
               activeIcon: _buildActiveIcon(Icons.summarize_outlined),
             ),
-            BottomNavigationBarItem(
-              icon: const Icon(Icons.history_outlined),
-              label: 'History',
-              activeIcon: _buildActiveIcon(Icons.history_outlined),
-            ),
           ],
           currentIndex: selectedIndex,
           selectedItemColor: Colors.black,
