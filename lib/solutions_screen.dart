@@ -51,7 +51,7 @@ class _SolutionsScreenState extends State<SolutionsScreen> {
       }
 
       final String apiUrl =
-          'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$apiKey';
+          'https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent?key=$apiKey';
 
       final requestBody = await _prepareRequestBody();
       final response = await http.post(
