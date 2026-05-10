@@ -160,6 +160,77 @@ class _SolutionsScreenState extends State<SolutionsScreen> {
     );
   }
 
+  // 🟢 ฟังก์ชันแก้ไข: สร้างกรอบ Scanner ที่โปร่งใสตรงกลาง และมืดรอบข้าง
+  Widget _buildScannerOverlay(double screenWidth, double screenHeight) {
+    double scanAreaSize = 250;
+    // ปรับสีรอบข้างให้มืดลง 50%
+    Color overlayColor = Colors.black.withOpacity(0.5);
+
+    return Positioned.fill(
+      child: Stack(
+        children: [
+          // 1. พื้นที่สีมืดรอบกรอบ
+          Positioned.fill(
+            child: Column(
+              children: [
+                // บน
+                Container(
+                  color: overlayColor,
+                  height:
+                      (screenHeight - scanAreaSize - 150) /
+                      2, // ปรับให้เหมาะกับปุ่ม
+                ),
+                Row(
+                  children: [
+                    // ซ้าย
+                    Container(
+                      color: overlayColor,
+                      width: (screenWidth - scanAreaSize) / 2,
+                      height: scanAreaSize,
+                    ),
+                    // กล่อง Scanner (ตรงกลาง) - โปร่งใส
+                    Container(
+                      width: scanAreaSize,
+                      height: scanAreaSize,
+                      color: Colors.transparent, // 🟢 ทำให้โปร่งใส 100%
+                    ),
+                    // ขวา
+                    Container(
+                      color: overlayColor,
+                      width: (screenWidth - scanAreaSize) / 2,
+                      height: scanAreaSize,
+                    ),
+                  ],
+                ),
+                // ล่าง
+                Container(
+                  color: overlayColor,
+                  height:
+                      (screenHeight - scanAreaSize - 150) / 2 +
+                      150, // ครอบคลุมถึงด้านล่าง
+                ),
+              ],
+            ),
+          ),
+          // 2. เส้นขอบสีเขียวของ Scanner
+          Positioned(
+            top: (screenHeight - scanAreaSize - 150) / 2,
+            left: (screenWidth - scanAreaSize) / 2,
+            child: Container(
+              width: scanAreaSize,
+              height: scanAreaSize,
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.greenAccent, width: 2),
+                borderRadius: BorderRadius.circular(16),
+                // 🟢 ลบสีขาว cloudy และลบ BackdropFilter ที่เคยอยู่ตรงนี้ออก
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildBody() {
     if (_isLoading) return _buildLoading();
     if (_errorMessage != null) return _buildError();
