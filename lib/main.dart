@@ -10,33 +10,66 @@ import 'package:path/path.dart' as path;
 import 'package:image_picker/image_picker.dart';
 import 'editor_screen.dart';
 import 'solutions_screen.dart';
+import 'package:http/http.dart' as http;
 
 // ----- API SERVICE -----
 class ApiService {
-  final String _apiUrl = 'https://api.example.com/solve';
-  final String _apiKey = 'YOUR_API_KEY';
+  // 1. ใส่ API Key ของคุณที่นี่
+  final String _apiKey = 'AIzaSyDd1Zh8Ea0-qRjXEmW-nQIqKQzE3VypSy0';
 
   Future<Map<String, dynamic>?> solveEquation(File imageFile) async {
+    // 2. URL ของ Gemini (ใช้รุ่น 1.5 Flash)
+    final String apiUrl =
+        'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$_apiKey';
+
     try {
-      var request = http.MultipartRequest('POST', Uri.parse(_apiUrl));
-      request.headers['Authorization'] = 'Bearer $_apiKey';
-      request.files.add(
-        await http.MultipartFile.fromPath(
-          'image',
-          imageFile.path,
-          filename: path.basename(imageFile.path),
-        ),
+      // 3. แปลงรูปภาพเป็น Base64
+      final bytes = await imageFile.readAsBytes();
+      final base64Image = base64Encode(bytes);
+
+      // 4. สร้าง Payload ส่งไปให้ Gemini
+      final Map<String, dynamic> requestBody = {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text":
+                    "Analyze this math problem. Solve it step by step. Output ONLY valid JSON matching this structure: {\"originalEquation\": \"...\", \"topics\": [\"...\"], \"steps\": [{\"title\": \"...\", \"mathExpression\": \"...\", \"explanation\": \"...\"}], \"finalAnswer\": \"...\"}",
+              },
+              {
+                "inline_data": {
+                  "mime_type": "image/jpeg", // ปรับตามประเภทรูปภาพ
+                  "data": base64Image,
+                },
+              },
+            ],
+          },
+        ],
+        // บังคับให้ Gemini ตอบเป็น JSON
+        "generationConfig": {"response_mime_type": "application/json"},
+      };
+
+      // 5. ส่ง Request
+      final response = await http.post(
+        Uri.parse(apiUrl),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(requestBody),
       );
 
-      var streamedResponse = await request.send();
-      var response = await http.Response.fromStream(streamedResponse);
-
       if (response.statusCode == 200) {
-        return json.decode(response.body);
+        final data = json.decode(response.body);
+        // ดึงข้อความ JSON ออกมาจาก Response ของ Gemini
+        String aiResponseText =
+            data['candidates'][0]['content']['parts'][0]['text'];
+
+        // แปลงข้อความนั้นเป็น Map ส่งกลับไปให้ SolutionsScreen ของเรา
+        return json.decode(aiResponseText);
       } else {
+        print('API Error: ${response.body}');
         return null;
       }
     } catch (e) {
+      print('Exception: $e');
       return null;
     }
   }
@@ -248,43 +281,13 @@ class _ScanScreenState extends State<ScanScreen> {
 
   // ฟังก์ชันส่วนกลางสำหรับส่งรูปไป AI และแสดง Loading
   Future<void> _processImage(File imageFile) async {
-    try {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => AlertDialog(
-          content: Row(
-            children: [
-              CircularProgressIndicator(color: Colors.green),
-              SizedBox(width: 20),
-              Text("กำลังวิเคราะห์สมการ..."),
-            ],
-          ),
-        ),
-      );
-
-      final result = await _apiService.solveEquation(imageFile);
-      Navigator.pop(context); // ปิด Loading Dialog
-
-      if (result != null) {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => SolutionsScreen(
-              // 🔴 แก้จาก resultData: result เป็นด้านล่างนี้
-              equation: result['equation']?.toString(),
-              imageFile: imageFile,
-            ),
-          ),
-        );
-      } else {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('ไม่สามารถวิเคราะห์สมการได้')));
-      }
-    } catch (e) {
-      print('Error: $e');
-    }
+    // แค่สั่งเปิดหน้า SolutionsScreen แล้วส่งรูปไปให้เลย AI จะทำงานในหน้านั้นเอง
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => SolutionsScreen(imageFile: imageFile),
+      ),
+    );
   }
 
   // 🔴 ฟังก์ชันสำหรับเปิด Gallery

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http; // 🔴 ต้องเพิ่ม import http
 
 // --- โมเดลข้อมูลสำหรับเก็บวิธีทำ ---
 class SolutionStep {
@@ -57,83 +58,137 @@ class _SolutionsScreenState extends State<SolutionsScreen> {
   @override
   void initState() {
     super.initState();
+    // เรียกใช้งาน AI ทันทีเมื่อเปิดหน้านี้ขึ้นมา
     _fetchSolutionFromAI();
   }
 
-  // --- ฟังก์ชันจำลองการเรียก AI API ---
+  // --- ฟังก์ชันเรียก AI API (Gemini) ---
   Future<void> _fetchSolutionFromAI() async {
+    // ถ้าไม่มีข้อมูลอะไรส่งมาเลย ให้แจ้งเตือน
+    if (widget.equation == null && widget.imageFile == null) {
+      setState(() {
+        _isLoading = false;
+        _errorMessage = "ไม่พบข้อมูลโจทย์ปัญหา";
+      });
+      return;
+    }
+
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
 
     try {
-      // 💡 ตรงนี้คือจุดที่คุณต้องใส่ HTTP Request เพื่อยิง API ของคุณจริงๆ
-      // ตัวอย่าง:
-      // var response = await http.post(
-      //   Uri.parse('https://your-ai-api.com/solve'),
-      //   body: {'equation': widget.equation},
-      //   // หรือส่งรูปแบบ MultipartRequest ถ้ามี widget.imageFile
-      // );
+      // ใช้ API Key จากไฟล์ main ของคุณ
+      final String apiKey = 'AIzaSyDd1Zh8Ea0-qRjXEmW-nQIqKQzE3VypSy0';
+      final String apiUrl =
+          'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$apiKey';
 
-      // จำลองเวลาโหลด API 2 วินาที
-      await Future.delayed(const Duration(seconds: 2));
+      // คำสั่ง Prompt ที่คุณระบุมา
+      final String systemInstruction =
+          """คุณคือผู้เชี่ยวชาญด้านคณิตศาสตร์ ฉันจะส่งรูปภาพสมการ หรือข้อความสมการให้คุณ ให้คุณแก้สมการนั้นและแสดงวิธีทำทีละขั้นตอน และ คุณต้องตอบกลับมาในรูปแบบ JSON เท่านั้น ตามโครงสร้างนี้:
+{
+  "originalEquation": "สมการที่อ่านได้",
+  "topics": ["หัวข้อที่เกี่ยวข้อง1", "หัวข้อที่เกี่ยวข้อง2"],
+  "steps": [
+    { "title": "ชื่อขั้นตอน", "mathExpression": "สมการในขั้นตอนนี้", "explanation": "คำอธิบาย" }
+  ],
+  "finalAnswer": "คำตอบสุดท้าย"
+}""";
 
-      // จำลองข้อมูล JSON ที่ AI ตอบกลับมา (เลียนแบบรูปภาพ)
-      String mockJsonResponse = '''
-      {
-        "originalEquation": "2x² + 5x - 3 = 0",
-        "topics": ["พีชคณิต", "สมการกำลังสอง"],
-        "steps": [
-          {
-            "title": "ขั้นตอนที่ 1: แยกตัวประกอบของสมการกำลังสอง",
-            "mathExpression": "(2x - 1)(x + 3) = 0",
-            "explanation": "หาตัวเลขสองตัวที่คูณกันได้ -6 (จาก 2 * -3) และบวกกันได้ 5 ตัวเลขนั้นคือ 6 และ -1"
-          },
-          {
-            "title": "ขั้นตอนที่ 2: ตั้งค่าแต่ละวงเล็บให้เท่ากับศูนย์",
-            "mathExpression": "2x - 1 = 0 หรือ x + 3 = 0",
-            "explanation": "ตามคุณสมบัติของศูนย์ หากผลคูณของสองนิพจน์เท่ากับศูนย์ อย่างน้อยหนึ่งนิพจน์ต้องเท่ากับศูนย์"
-          },
-          {
-            "title": "ขั้นตอนที่ 3: แก้สมการหาค่า x",
-            "mathExpression": "2x = 1 => x = 1/2\\nx = -3",
-            "explanation": ""
-          }
-        ],
-        "finalAnswer": "x = 1/2, -3"
+      // เตรียมส่วนประกอบของข้อมูลที่จะส่ง (Parts)
+      List<Map<String, dynamic>> parts = [];
+
+      // 1. ใส่ Prompt สั่งการเสมอ
+      parts.add({"text": systemInstruction});
+
+      // 2. ถ้ามีสมการแบบข้อความส่งมา ให้เติมเข้าไปใน Prompt
+      if (widget.equation != null && widget.equation!.isNotEmpty) {
+        parts.add({"text": "\nโจทย์ปัญหาคือ: ${widget.equation}"});
       }
-      ''';
 
-      // แปลง JSON เป็น Object
-      final Map<String, dynamic> data = json.decode(mockJsonResponse);
+      // 3. ถ้ามีรูปภาพส่งมา ให้แปลงเป็น Base64 แล้วแนบไปด้วย
+      if (widget.imageFile != null) {
+        final bytes = await widget.imageFile!.readAsBytes();
+        final base64Image = base64Encode(bytes);
+        parts.add({
+          "inline_data": {"mime_type": "image/jpeg", "data": base64Image},
+        });
+      }
 
-      List<SolutionStep> parsedSteps = (data['steps'] as List)
-          .map(
-            (step) => SolutionStep(
-              title: step['title'],
-              mathExpression: step['mathExpression'],
-              explanation: step['explanation'],
-            ),
-          )
-          .toList();
+      // สร้าง Request Body
+      final Map<String, dynamic> requestBody = {
+        "contents": [
+          {"parts": parts},
+        ],
+        "generationConfig": {
+          "response_mime_type": "application/json", // บังคับให้ AI ตอบเป็น JSON
+        },
+      };
 
-      setState(() {
-        _solutionData = SolutionData(
-          originalEquation:
-              widget.equation ??
-              data['originalEquation'], // ถ้ามี text ให้ใช้ text ก่อน
-          topics: List<String>.from(data['topics']),
-          steps: parsedSteps,
-          finalAnswer: data['finalAnswer'],
-        );
-        _isLoading = false;
-      });
+      // ยิงคำขอไปที่ Gemini
+      final response = await http.post(
+        Uri.parse(apiUrl),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(requestBody),
+      );
+
+      if (response.statusCode == 200) {
+        // ใช้ utf8.decode เพื่อป้องกันปัญหาภาษาไทยกลายเป็นภาษาต่างดาว
+        final responseData = json.decode(utf8.decode(response.bodyBytes));
+        String aiResponseText =
+            responseData['candidates'][0]['content']['parts'][0]['text'];
+
+        // บางครั้ง AI อาจจะใส่ ```json ครอบมา ให้ตัดออกก่อน
+        if (aiResponseText.startsWith("```json")) {
+          aiResponseText = aiResponseText
+              .replaceAll("```json", "")
+              .replaceAll("```", "")
+              .trim();
+        }
+
+        // แปลงข้อความ JSON ให้กลายเป็น Object Dart
+        final Map<String, dynamic> data = json.decode(aiResponseText);
+
+        List<SolutionStep> parsedSteps = (data['steps'] as List)
+            .map(
+              (step) => SolutionStep(
+                title: step['title'].toString(),
+                mathExpression: step['mathExpression'].toString(),
+                explanation: step['explanation']?.toString() ?? '',
+              ),
+            )
+            .toList();
+
+        setState(() {
+          _solutionData = SolutionData(
+            // ใช้สมการจาก AI ก่อน ถ้าไม่มีค่อยใช้จากหน้า Editor
+            originalEquation:
+                data['originalEquation']?.toString() ?? widget.equation ?? '-',
+            topics: List<String>.from(data['topics'] ?? []),
+            steps: parsedSteps,
+            finalAnswer: data['finalAnswer']?.toString() ?? '-',
+          );
+          _isLoading = false;
+        });
+      } else {
+        print("====== API ERROR ======");
+        print("Status Code: ${response.statusCode}");
+        print("Response Body: ${response.body}");
+        print("=======================");
+
+        setState(() {
+          _isLoading = false;
+          // เอา Status Code มาโชว์บนหน้าจอชั่วคราว จะได้รู้ว่าพังที่โค้ดไหน
+          _errorMessage =
+              "ไม่สามารถเชื่อมต่อ AI ได้ (Code: ${response.statusCode})\nกรุณาลองใหม่อีกครั้ง";
+        });
+      }
     } catch (e) {
       setState(() {
         _isLoading = false;
-        _errorMessage =
-            "เกิดข้อผิดพลาดในการวิเคราะห์โจทย์ กรุณาลองใหม่อีกครั้ง";
+        _errorMessage = "เกิดข้อผิดพลาดในการวิเคราะห์ข้อมูล";
+        print("Error details: $e");
       });
     }
   }
@@ -188,7 +243,22 @@ class _SolutionsScreenState extends State<SolutionsScreen> {
 
     if (_errorMessage != null) {
       return Center(
-        child: Text(_errorMessage!, style: const TextStyle(color: Colors.red)),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, color: Colors.red, size: 48),
+            const SizedBox(height: 16),
+            Text(
+              _errorMessage!,
+              style: const TextStyle(color: Colors.red, fontSize: 16),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _fetchSolutionFromAI,
+              child: const Text("ลองใหม่อีกครั้ง"),
+            ),
+          ],
+        ),
       );
     }
 
@@ -268,32 +338,33 @@ class _SolutionsScreenState extends State<SolutionsScreen> {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: data.topics.map((topic) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: badgeGreen,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    topic,
-                    style: TextStyle(
-                      color: darkGreenText,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
+          if (data.topics.isNotEmpty)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: data.topics.map((topic) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: badgeGreen,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      topic,
+                      style: TextStyle(
+                        color: darkGreenText,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
-                ),
-              );
-            }).toList(),
-          ),
+                );
+              }).toList(),
+            ),
         ],
       ),
     );

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:math_expressions/math_expressions.dart'; // สำหรับการคำนวณ
+import 'solutions_screen.dart';
 
 class EditorScreen extends StatefulWidget {
   const EditorScreen({Key? key}) : super(key: key);
@@ -9,8 +10,8 @@ class EditorScreen extends StatefulWidget {
 }
 
 class _EditorScreenState extends State<EditorScreen> {
-  String _equation = "0"; 
-  String _result = "";    
+  String _equation = "0";
+  String _result = "";
   bool _isScientific = false; // ตัวแปรสลับโหมดวิทย์/ปกติ
 
   // ชุดสีตามดีไซน์เดิม (Light Theme)
@@ -68,9 +69,16 @@ class _EditorScreenState extends State<EditorScreen> {
       } else {
         // จัดการการพิมพ์สัญลักษณ์พิเศษ
         String addValue = value;
-        if (value == "x²") addValue = "^2";
-        else if (value == "sin" || value == "cos" || value == "tan" || value == "ln" || value == "log") addValue = "$value(";
-        else if (value == "√") addValue = "√(";
+        if (value == "x²")
+          addValue = "^2";
+        else if (value == "sin" ||
+            value == "cos" ||
+            value == "tan" ||
+            value == "ln" ||
+            value == "log")
+          addValue = "$value(";
+        else if (value == "√")
+          addValue = "√(";
 
         if (_equation == "0") {
           _equation = addValue;
@@ -117,7 +125,13 @@ class _EditorScreenState extends State<EditorScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text("โหมดแก้ไข", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+                const Text(
+                  "โหมดแก้ไข",
+                  style: TextStyle(
+                    color: Colors.grey,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
                 const Spacer(),
                 Align(
                   alignment: Alignment.centerRight,
@@ -130,9 +144,18 @@ class _EditorScreenState extends State<EditorScreen> {
                       children: [
                         Text(
                           _equation,
-                          style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.black87),
+                          style: const TextStyle(
+                            fontSize: 32,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
                         ),
-                        Container(margin: const EdgeInsets.only(left: 4, bottom: 4), width: 2, height: 32, color: darkGreenBtnColor),
+                        Container(
+                          margin: const EdgeInsets.only(left: 4, bottom: 4),
+                          width: 2,
+                          height: 32,
+                          color: darkGreenBtnColor,
+                        ),
                       ],
                     ),
                   ),
@@ -142,7 +165,11 @@ class _EditorScreenState extends State<EditorScreen> {
                     alignment: Alignment.centerRight,
                     child: Text(
                       "= $_result",
-                      style: const TextStyle(fontSize: 20, color: Colors.black54, fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                        fontSize: 20,
+                        color: Colors.black54,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
               ],
@@ -155,7 +182,9 @@ class _EditorScreenState extends State<EditorScreen> {
           Expanded(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: _isScientific ? _buildScientificKeypad() : _buildStandardKeypad(),
+              child: _isScientific
+                  ? _buildScientificKeypad()
+                  : _buildStandardKeypad(),
             ),
           ),
 
@@ -168,22 +197,32 @@ class _EditorScreenState extends State<EditorScreen> {
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: darkGreenBtnColor,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   elevation: 0,
                 ),
                 onPressed: () {
-                  // สั่งคำนวณทันทีเมื่อกดปุ่ม "แก้สมการ"
-                  _calculate();
-                  print("Solving equation: $_equation");
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          SolutionsScreen(equation: _equation),
+                    ),
+                  );
                 },
                 child: const Text(
                   "แก้สมการ",
-                  style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),
           ),
-          
+
           const SizedBox(height: 10),
         ],
       ),
@@ -196,20 +235,50 @@ class _EditorScreenState extends State<EditorScreen> {
       children: [
         // แถวที่ 1: สามเหลี่ยมอยู่ซ้ายสุด คู่กับ AC
         _buildRow([
-          _KeyModel(icon: Icons.square_foot, bgColor: lightGreyKeyColor, iconColor: Colors.black54, isToggle: true),
+          _KeyModel(
+            icon: Icons.square_foot,
+            bgColor: lightGreyKeyColor,
+            iconColor: Colors.black54,
+            isToggle: true,
+          ),
           _KeyModel(text: "AC", bgColor: redKeyColor, textColor: Colors.white),
           _KeyModel(text: "x²", bgColor: lightGreyKeyColor),
           _KeyModel(text: "π", bgColor: lightGreyKeyColor),
-          _KeyModel(icon: Icons.backspace_outlined, bgColor: redKeyColor, iconColor: Colors.white, isBackspace: true),
+          _KeyModel(
+            icon: Icons.backspace_outlined,
+            bgColor: redKeyColor,
+            iconColor: Colors.white,
+            isBackspace: true,
+          ),
         ], isFiveColumn: true),
         const SizedBox(height: 10),
-        _buildRow([_KeyModel(text: "7"), _KeyModel(text: "8"), _KeyModel(text: "9"), _KeyModel(text: "÷", bgColor: greenKeyColor)]),
+        _buildRow([
+          _KeyModel(text: "7"),
+          _KeyModel(text: "8"),
+          _KeyModel(text: "9"),
+          _KeyModel(text: "÷", bgColor: greenKeyColor),
+        ]),
         const SizedBox(height: 10),
-        _buildRow([_KeyModel(text: "4"), _KeyModel(text: "5"), _KeyModel(text: "6"), _KeyModel(text: "×", bgColor: greenKeyColor)]),
+        _buildRow([
+          _KeyModel(text: "4"),
+          _KeyModel(text: "5"),
+          _KeyModel(text: "6"),
+          _KeyModel(text: "×", bgColor: greenKeyColor),
+        ]),
         const SizedBox(height: 10),
-        _buildRow([_KeyModel(text: "1"), _KeyModel(text: "2"), _KeyModel(text: "3"), _KeyModel(text: "-", bgColor: greenKeyColor)]),
+        _buildRow([
+          _KeyModel(text: "1"),
+          _KeyModel(text: "2"),
+          _KeyModel(text: "3"),
+          _KeyModel(text: "-", bgColor: greenKeyColor),
+        ]),
         const SizedBox(height: 10),
-        _buildRow([_KeyModel(text: "0"), _KeyModel(text: "."), _KeyModel(text: "=", bgColor: beigeKeyColor), _KeyModel(text: "+", bgColor: greenKeyColor)]),
+        _buildRow([
+          _KeyModel(text: "0"),
+          _KeyModel(text: "."),
+          _KeyModel(text: "=", bgColor: beigeKeyColor),
+          _KeyModel(text: "+", bgColor: greenKeyColor),
+        ]),
       ],
     );
   }
@@ -220,11 +289,21 @@ class _EditorScreenState extends State<EditorScreen> {
       children: [
         // แถวที่ 1
         _buildRow([
-          _KeyModel(icon: Icons.square_foot, bgColor: greenKeyColor, iconColor: darkGreenBtnColor, isToggle: true), // ไฮไลท์เมื่อเปิดวิทย์
+          _KeyModel(
+            icon: Icons.square_foot,
+            bgColor: greenKeyColor,
+            iconColor: darkGreenBtnColor,
+            isToggle: true,
+          ), // ไฮไลท์เมื่อเปิดวิทย์
           _KeyModel(text: "AC", bgColor: redKeyColor, textColor: Colors.white),
           _KeyModel(text: "sin", bgColor: lightGreyKeyColor),
           _KeyModel(text: "cos", bgColor: lightGreyKeyColor),
-          _KeyModel(icon: Icons.backspace_outlined, bgColor: redKeyColor, iconColor: Colors.white, isBackspace: true),
+          _KeyModel(
+            icon: Icons.backspace_outlined,
+            bgColor: redKeyColor,
+            iconColor: Colors.white,
+            isBackspace: true,
+          ),
         ], isFiveColumn: true),
         const SizedBox(height: 8),
         // แถวที่ 2 (ฟังก์ชันวิทย์เพิ่มเติม)
@@ -236,13 +315,33 @@ class _EditorScreenState extends State<EditorScreen> {
           _KeyModel(text: "^", bgColor: lightGreyKeyColor),
         ], isFiveColumn: true),
         const SizedBox(height: 8),
-        _buildRow([_KeyModel(text: "7"), _KeyModel(text: "8"), _KeyModel(text: "9"), _KeyModel(text: "÷", bgColor: greenKeyColor)]),
+        _buildRow([
+          _KeyModel(text: "7"),
+          _KeyModel(text: "8"),
+          _KeyModel(text: "9"),
+          _KeyModel(text: "÷", bgColor: greenKeyColor),
+        ]),
         const SizedBox(height: 8),
-        _buildRow([_KeyModel(text: "4"), _KeyModel(text: "5"), _KeyModel(text: "6"), _KeyModel(text: "×", bgColor: greenKeyColor)]),
+        _buildRow([
+          _KeyModel(text: "4"),
+          _KeyModel(text: "5"),
+          _KeyModel(text: "6"),
+          _KeyModel(text: "×", bgColor: greenKeyColor),
+        ]),
         const SizedBox(height: 8),
-        _buildRow([_KeyModel(text: "1"), _KeyModel(text: "2"), _KeyModel(text: "3"), _KeyModel(text: "-", bgColor: greenKeyColor)]),
+        _buildRow([
+          _KeyModel(text: "1"),
+          _KeyModel(text: "2"),
+          _KeyModel(text: "3"),
+          _KeyModel(text: "-", bgColor: greenKeyColor),
+        ]),
         const SizedBox(height: 8),
-        _buildRow([_KeyModel(text: "0"), _KeyModel(text: "."), _KeyModel(text: "=", bgColor: beigeKeyColor), _KeyModel(text: "+", bgColor: greenKeyColor)]),
+        _buildRow([
+          _KeyModel(text: "0"),
+          _KeyModel(text: "."),
+          _KeyModel(text: "=", bgColor: beigeKeyColor),
+          _KeyModel(text: "+", bgColor: greenKeyColor),
+        ]),
       ],
     );
   }
@@ -256,7 +355,9 @@ class _EditorScreenState extends State<EditorScreen> {
           _KeyModel key = entry.value;
           return Expanded(
             child: Padding(
-              padding: EdgeInsets.only(left: idx == 0 ? 0 : (isFiveColumn ? 6 : 12)),
+              padding: EdgeInsets.only(
+                left: idx == 0 ? 0 : (isFiveColumn ? 6 : 12),
+              ),
               child: _buildButton(key),
             ),
           );
@@ -282,7 +383,11 @@ class _EditorScreenState extends State<EditorScreen> {
         decoration: BoxDecoration(
           color: key.bgColor ?? Colors.white,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: key.bgColor == null ? Colors.grey.shade300 : Colors.transparent),
+          border: Border.all(
+            color: key.bgColor == null
+                ? Colors.grey.shade300
+                : Colors.transparent,
+          ),
         ),
         child: Center(
           child: key.icon != null
@@ -290,7 +395,9 @@ class _EditorScreenState extends State<EditorScreen> {
               : Text(
                   key.text!,
                   style: TextStyle(
-                    fontSize: key.text!.length > 2 ? 18 : 22, // ปรับขนาดตัวอักษรให้เล็กลงถ้าเป็นคำว่า sin, cos, tan
+                    fontSize: key.text!.length > 2
+                        ? 18
+                        : 22, // ปรับขนาดตัวอักษรให้เล็กลงถ้าเป็นคำว่า sin, cos, tan
                     color: key.textColor ?? Colors.black87,
                     fontWeight: FontWeight.w500,
                   ),
