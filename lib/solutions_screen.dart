@@ -76,7 +76,7 @@ class _SolutionsScreenState extends State<SolutionsScreen> {
     {
       "originalEquation": "สมการ",
       "topics": ["หัวข้อ"],
-      "steps": [{"title": "ขั้นตอน", "mathExpression": "สมการ", "explanation": "คำอธิบาย"}],
+      "steps": [{"title": "ขั้นตอน(ภาษาไทย)", "mathExpression": "สมการ", "explanation": "คำอธิบาย"}],
       "finalAnswer": "คำตอบ"
     }""";
 
@@ -104,7 +104,7 @@ class _SolutionsScreenState extends State<SolutionsScreen> {
   }
 
   void _parseResponse(String body) {
-    final decoded = json.decode(utf8.decode(body.codeUnits));
+    final decoded = json.decode(body);
     String aiText = decoded['candidates'][0]['content']['parts'][0]['text'];
 
     // ทำความสะอาด JSON string ถ้ามี markdown
