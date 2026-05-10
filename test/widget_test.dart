@@ -28,9 +28,7 @@ class _MyAppState extends State<MyApp> {
   Widget build(BuildContext context) {
     return MaterialApp(
       home: Scaffold(
-        appBar: AppBar(
-          title: const Text('Flutter AI Test App'),
-        ),
+        appBar: AppBar(title: const Text('Flutter AI Test App')),
         body: Center(
           child: Text(
             '$_counter',
