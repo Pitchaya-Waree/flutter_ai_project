@@ -7,11 +7,11 @@ class MathDisplay extends StatelessWidget {
   final VoidCallback onClear;
 
   const MathDisplay({
-    Key? key,
+    super.key,
     required this.equation,
     required this.result,
     required this.onClear,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

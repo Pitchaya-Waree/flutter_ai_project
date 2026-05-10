@@ -37,8 +37,7 @@ class SolutionsScreen extends StatefulWidget {
   final String? equation; // รับสมการที่พิมพ์จาก Editor
   final File? imageFile; // รับรูปภาพที่แสกนจากกล้อง
 
-  const SolutionsScreen({Key? key, this.equation, this.imageFile})
-    : super(key: key);
+  const SolutionsScreen({super.key, this.equation, this.imageFile});
 
   @override
   _SolutionsScreenState createState() => _SolutionsScreenState();
@@ -308,7 +307,7 @@ class _SolutionsScreenState extends State<SolutionsScreen> {
                   int idx = entry.key;
                   bool isLast = idx == _solutionData!.steps.length - 1;
                   return _buildTimelineStep(entry.value, isLast);
-                }).toList(),
+                }),
 
                 const SizedBox(height: 16),
                 _buildFinalAnswerCard(_solutionData!.finalAnswer),
