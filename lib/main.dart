@@ -5,7 +5,8 @@ import 'dart:io';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart'; // 🔴 นำเข้า dotenv เพื่อโหลดค่า API Key ตอนเริ่มแอป
+import 'package:image_cropper/image_cropper.dart'; // 🔴 นำเข้า image_cropper
+import 'package:flutter_dotenv/flutter_dotenv.dart'; // 🔴 นำเข้า dotenv
 
 import 'editor_screen.dart';
 import 'solutions_screen.dart';
@@ -194,14 +195,14 @@ class ScanScreen extends StatefulWidget {
 class _ScanScreenState extends State<ScanScreen> {
   late CameraController _controller;
   late Future<void> _initializeControllerFuture;
-  final ImagePicker _picker = ImagePicker(); 
+  final ImagePicker _picker = ImagePicker();
 
   @override
   void initState() {
     super.initState();
     _controller = CameraController(
       widget.cameras[0],
-      ResolutionPreset.medium,
+      ResolutionPreset.high,
       enableAudio: false,
     );
     _initializeControllerFuture = _controller.initialize();
@@ -213,13 +214,51 @@ class _ScanScreenState extends State<ScanScreen> {
     super.dispose();
   }
 
-  // ฟังก์ชันส่วนกลางสำหรับส่งรูปไป AI 
-  Future<void> _processImage(File imageFile) async {
-    // นำทางไปหน้า SolutionsScreen พร้อมส่งรูปภาพไปให้ AI แสกน
+  // 🔴 ฟังก์ชันครอบตัดรูปภาพ (Crop Image) อัปเดตสำหรับเวอร์ชันใหม่
+  Future<void> _cropImage(File imageFile) async {
+    CroppedFile? croppedFile = await ImageCropper().cropImage(
+      sourcePath: imageFile.path,
+      // ย้าย aspectRatioPresets เข้ามาไว้ใน uiSettings แทน
+      uiSettings: [
+        AndroidUiSettings(
+          toolbarTitle: 'ครอบตัดโจทย์คณิตศาสตร์',
+          toolbarColor: Colors.green[800],
+          toolbarWidgetColor: Colors.white,
+          initAspectRatio: CropAspectRatioPreset.original,
+          lockAspectRatio: false,
+          // 🔴 ใส่ของ Android ตรงนี้
+          aspectRatioPresets: [
+            CropAspectRatioPreset.original,
+            CropAspectRatioPreset.square,
+            CropAspectRatioPreset.ratio16x9,
+            CropAspectRatioPreset.ratio4x3,
+          ],
+        ),
+        IOSUiSettings(
+          title: 'ครอบตัดโจทย์',
+          // 🔴 ใส่ของ iOS ตรงนี้
+          aspectRatioPresets: [
+            CropAspectRatioPreset.original,
+            CropAspectRatioPreset.square,
+            CropAspectRatioPreset.ratio16x9,
+            CropAspectRatioPreset.ratio4x3,
+          ],
+        ),
+      ],
+    );
+
+    // ถ้ายืนยันการครอบตัด (กดเครื่องหมายถูก) ให้ส่งไปหน้า SolutionsScreen
+    if (croppedFile != null) {
+      _processImage(File(croppedFile.path));
+    }
+  }
+
+  // ฟังก์ชันส่วนกลางสำหรับส่งรูปล่าสุดที่ถูกครอปไป AI
+  Future<void> _processImage(File finalImageFile) async {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => SolutionsScreen(imageFile: imageFile),
+        builder: (context) => SolutionsScreen(imageFile: finalImageFile),
       ),
     );
   }
@@ -230,7 +269,8 @@ class _ScanScreenState extends State<ScanScreen> {
       source: ImageSource.gallery,
     );
     if (pickedFile != null) {
-      _processImage(File(pickedFile.path));
+      // 🔴 เลือกรูปเสร็จแล้ว ส่งเข้าหน้า Crop
+      _cropImage(File(pickedFile.path));
     }
   }
 
@@ -239,7 +279,8 @@ class _ScanScreenState extends State<ScanScreen> {
     try {
       await _initializeControllerFuture;
       final image = await _controller.takePicture();
-      _processImage(File(image.path));
+      // 🔴 ถ่ายเสร็จแล้ว ส่งเข้าหน้า Crop ก่อน
+      _cropImage(File(image.path));
     } catch (e) {
       print('Error capture: $e');
     }
@@ -331,10 +372,10 @@ class _ScanScreenState extends State<ScanScreen> {
                             Icons.photo_library_outlined,
                             color: Colors.grey[600],
                           ),
-                          onPressed: _pickFromGallery, 
+                          onPressed: _pickFromGallery,
                         ),
                       ),
-                      // ปุ่ม Shutter (ถ่ายรูป)
+                      // ปุ่ม ถ่ายรูป
                       GestureDetector(
                         onTap: _capturePhoto,
                         child: Container(
@@ -360,7 +401,6 @@ class _ScanScreenState extends State<ScanScreen> {
                           ),
                         ),
                       ),
-                      // ปุ่มไปหน้า เครื่องคิดเลข (Editor)
                       CircleAvatar(
                         backgroundColor: Colors.grey[200],
                         radius: 28,
@@ -395,19 +435,14 @@ class _ScanScreenState extends State<ScanScreen> {
         selectedIndex: 0,
         onItemTapped: (index) {
           if (index == 1) {
-            // กดปุ่ม Editor (เครื่องคิดเลข)
             Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => const EditorScreen()),
             );
           } else if (index == 2) {
-            // กดปุ่ม Solutions (วิธีทำ)
             Navigator.push(
               context,
-              MaterialPageRoute(
-                // ส่งค่าว่างๆ ไปก่อนเมื่อกดดูประวัติ/วิธีทำล่าสุด
-                builder: (context) => const SolutionsScreen(),
-              ),
+              MaterialPageRoute(builder: (context) => const SolutionsScreen()),
             );
           }
         },
@@ -419,8 +454,8 @@ class _ScanScreenState extends State<ScanScreen> {
 // ----- MAIN ENTRY POINT -----
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // 🔴 โหลดไฟล์ .env ก่อนเพื่อรับค่า API Key
+
+  // 🔴 โหลด .env ก่อนเสมอ
   await dotenv.load(fileName: ".env");
 
   final cameras = await availableCameras();

@@ -67,6 +67,11 @@ class _EditorScreenState extends State<EditorScreen> {
       } else if (value == "=") {
         _calculate();
       } else {
+        // เมื่อพิมพ์ตัวอักษรใหม่ ให้ซ่อนผลลัพธ์ (กลับไปเป็นสมการ)
+        if (_result.isNotEmpty) {
+          _result = "";
+        }
+
         // จัดการการพิมพ์สัญลักษณ์พิเศษ
         String addValue = value;
         if (value == "x²") {
@@ -117,14 +122,17 @@ class _EditorScreenState extends State<EditorScreen> {
           Container(
             margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             padding: const EdgeInsets.all(16),
-            height: 140,
+            constraints: const BoxConstraints(
+              minHeight: 160,
+            ), // ความสูงยืดหยุ่นได้
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: Colors.grey.shade300),
             ),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment:
+                  CrossAxisAlignment.end, // 🔴 ดันทุกอย่างชิดขวา
               children: [
                 // หัวข้อ โหมดแก้ไข และ ปุ่มถังขยะ
                 Row(
@@ -138,7 +146,7 @@ class _EditorScreenState extends State<EditorScreen> {
                       ),
                     ),
                     InkWell(
-                      onTap: () => _onKeyPress("AC"), // เคลียร์ค่าทั้งหมด
+                      onTap: () => _onKeyPress("AC"),
                       child: Container(
                         padding: const EdgeInsets.all(6),
                         decoration: BoxDecoration(
@@ -154,47 +162,91 @@ class _EditorScreenState extends State<EditorScreen> {
                     ),
                   ],
                 ),
-                const Spacer(),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    reverse: true, // ให้เลื่อนไปด้านขวาสุดเสมอเวลาพิมพ์ยาวๆ
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
+
+                const SizedBox(height: 30), // ดันเนื้อหาลงข้างล่าง
+                // 🔴 ใช้ AnimatedSwitcher เพื่อสร้างอนิเมชั่นสลับตัวเลข
+                AnimatedSwitcher(
+                  duration: const Duration(
+                    milliseconds: 300,
+                  ), // ความเร็วอนิเมชั่น
+                  transitionBuilder:
+                      (Widget child, Animation<double> animation) {
+                        return FadeTransition(
+                          opacity: animation,
+                          child: SlideTransition(
+                            position: Tween<Offset>(
+                              begin: const Offset(
+                                0,
+                                0.2,
+                              ), // เลื่อนจากข้างล่างขึ้นมา
+                              end: Offset.zero,
+                            ).animate(animation),
+                            child: child,
+                          ),
+                        );
+                      },
+                  child: Column(
+                    // 🔴 แก้ไข Key ตรงนี้: ให้มันจำแค่ว่า "มีผลลัพธ์หรือยัง" จะได้ไม่กระตุกเวลาพิมพ์ตัวเลขเพิ่ม
+                    key: ValueKey<bool>(
+                      _result.isNotEmpty && _result != "Error",
+                    ),
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      // ถ้ามีผลลัพธ์ (หลังกด =)
+                      if (_result.isNotEmpty && _result != "Error") ...[
                         Text(
-                          _equation,
-                          style: const TextStyle(
-                            fontSize: 32,
+                          _result, // แสดงผลลัพธ์เป็นตัวใหญ่
+                          style: TextStyle(
+                            fontSize: 40,
                             fontWeight: FontWeight.bold,
-                            color: Colors.black87,
+                            color: darkGreenBtnColor,
+                          ),
+                          textAlign: TextAlign.right,
+                        ),
+                        Text(
+                          _equation, // ดันสมการเป็นตัวเล็กสีเทาด้านล่าง
+                          style: const TextStyle(
+                            fontSize: 18,
+                            color: Colors.grey,
+                          ),
+                          textAlign: TextAlign.right,
+                        ),
+                      ]
+                      // ถ้ากำลังพิมพ์สมการ
+                      else ...[
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          reverse: true,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                _equation,
+                                style: const TextStyle(
+                                  fontSize: 32,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black87,
+                                ),
+                                textAlign: TextAlign.right,
+                              ),
+                              // เคอร์เซอร์กระพริบจำลอง
+                              Container(
+                                margin: const EdgeInsets.only(
+                                  left: 4,
+                                  bottom: 4,
+                                ),
+                                width: 2,
+                                height: 32,
+                                color: darkGreenBtnColor,
+                              ),
+                            ],
                           ),
                         ),
-                        // เคอร์เซอร์กระพริบจำลอง
-                        Container(
-                          margin: const EdgeInsets.only(left: 4, bottom: 4),
-                          width: 2,
-                          height: 32,
-                          color: darkGreenBtnColor,
-                        ),
                       ],
-                    ),
+                    ],
                   ),
                 ),
-                if (_result.isNotEmpty && _result != "Error")
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: Text(
-                      "= $_result",
-                      style: const TextStyle(
-                        fontSize: 20,
-                        color: Colors.black54,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
               ],
             ),
           ),
@@ -230,7 +282,8 @@ class _EditorScreenState extends State<EditorScreen> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => SolutionsScreen(equation: _equation),
+                      builder: (context) =>
+                          SolutionsScreen(equation: _equation),
                     ),
                   );
                 },
