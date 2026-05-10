@@ -44,13 +44,14 @@ class _SolutionsScreenState extends State<SolutionsScreen> {
     try {
       // 🔴 ดึง API Key จากไฟล์ .env
       final String apiKey = dotenv.env['GEMINI_API_KEY'] ?? '';
-      
+
       if (apiKey.isEmpty) {
         _showError("ไม่พบ API Key ในระบบ (ตรวจสอบไฟล์ .env)");
         return;
       }
 
-      final String apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$apiKey';
+      final String apiUrl =
+          'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$apiKey';
 
       final requestBody = await _prepareRequestBody();
       final response = await http.post(
@@ -70,7 +71,8 @@ class _SolutionsScreenState extends State<SolutionsScreen> {
   }
 
   Future<Map<String, dynamic>> _prepareRequestBody() async {
-    const prompt = """คุณคือผู้เชี่ยวชาญด้านคณิตศาสตร์ แก้โจทย์ต่อไปนี้และตอบกลับเป็น JSON เท่านั้น:
+    const prompt =
+        """คุณคือผู้เชี่ยวชาญด้านคณิตศาสตร์ แก้โจทย์ต่อไปนี้และตอบกลับเป็น JSON เท่านั้น:
     {
       "originalEquation": "สมการ",
       "topics": ["หัวข้อ"],
@@ -78,7 +80,9 @@ class _SolutionsScreenState extends State<SolutionsScreen> {
       "finalAnswer": "คำตอบ"
     }""";
 
-    List<Map<String, dynamic>> parts = [{"text": prompt}];
+    List<Map<String, dynamic>> parts = [
+      {"text": prompt},
+    ];
 
     if (widget.equation?.isNotEmpty ?? false) {
       parts.add({"text": "โจทย์: ${widget.equation}"});
@@ -87,12 +91,14 @@ class _SolutionsScreenState extends State<SolutionsScreen> {
     if (widget.imageFile != null) {
       final bytes = await widget.imageFile!.readAsBytes();
       parts.add({
-        "inline_data": {"mime_type": "image/jpeg", "data": base64Encode(bytes)}
+        "inline_data": {"mime_type": "image/jpeg", "data": base64Encode(bytes)},
       });
     }
 
     return {
-      "contents": [{"parts": parts}],
+      "contents": [
+        {"parts": parts},
+      ],
       "generationConfig": {"response_mime_type": "application/json"},
     };
   }
@@ -100,7 +106,7 @@ class _SolutionsScreenState extends State<SolutionsScreen> {
   void _parseResponse(String body) {
     final decoded = json.decode(utf8.decode(body.codeUnits));
     String aiText = decoded['candidates'][0]['content']['parts'][0]['text'];
-    
+
     // ทำความสะอาด JSON string ถ้ามี markdown
     aiText = aiText.replaceAll("```json", "").replaceAll("```", "").trim();
     final data = json.decode(aiText);
@@ -109,27 +115,46 @@ class _SolutionsScreenState extends State<SolutionsScreen> {
       _solutionData = SolutionData(
         originalEquation: data['originalEquation'] ?? widget.equation ?? '-',
         topics: List<String>.from(data['topics'] ?? []),
-        steps: (data['steps'] as List).map((s) => SolutionStep(
-          title: s['title'] ?? '',
-          mathExpression: s['mathExpression'] ?? '',
-          explanation: s['explanation'] ?? '',
-        )).toList(),
+        steps: (data['steps'] as List)
+            .map(
+              (s) => SolutionStep(
+                title: s['title'] ?? '',
+                mathExpression: s['mathExpression'] ?? '',
+                explanation: s['explanation'] ?? '',
+              ),
+            )
+            .toList(),
         finalAnswer: data['finalAnswer'] ?? '-',
       );
       _isLoading = false;
     });
   }
 
-  void _showError(String msg) => setState(() { _isLoading = false; _errorMessage = msg; });
+  void _showError(String msg) => setState(() {
+    _isLoading = false;
+    _errorMessage = msg;
+  });
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: bgColor,
       appBar: AppBar(
-        backgroundColor: bgColor, elevation: 0, centerTitle: true,
-        leading: IconButton(icon: Icon(Icons.arrow_back, color: darkGreenText), onPressed: () => Navigator.pop(context)),
-        title: Text("Solver", style: TextStyle(color: darkGreenText, fontWeight: FontWeight.bold, fontSize: 24)),
+        backgroundColor: bgColor,
+        elevation: 0,
+        centerTitle: true,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: darkGreenText),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Text(
+          "Solver",
+          style: TextStyle(
+            color: darkGreenText,
+            fontWeight: FontWeight.bold,
+            fontSize: 24,
+          ),
+        ),
       ),
       body: _buildBody(),
     );
@@ -145,19 +170,62 @@ class _SolutionsScreenState extends State<SolutionsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          OriginalEquationCard(data: _solutionData!, badgeColor: badgeGreen, textColor: darkGreenText),
+          OriginalEquationCard(
+            data: _solutionData!,
+            badgeColor: badgeGreen,
+            textColor: darkGreenText,
+          ),
           const SizedBox(height: 24),
-          Text("ขั้นตอนการแก้โจทย์", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: darkGreenText)),
+          Text(
+            "ขั้นตอนการแก้โจทย์",
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: darkGreenText,
+            ),
+          ),
           const Divider(thickness: 1),
           const SizedBox(height: 16),
-          ..._solutionData!.steps.asMap().entries.map((e) => StepCard(step: e.value, index: e.key, badgeColor: badgeGreen, textColor: darkGreenText)),
-          _FinalAnswerCard(answer: _solutionData!.finalAnswer, bgColor: finalAnswerBg, textColor: darkGreenText),
+          ..._solutionData!.steps.asMap().entries.map(
+            (e) => StepCard(
+              step: e.value,
+              index: e.key,
+              badgeColor: badgeGreen,
+              textColor: darkGreenText,
+            ),
+          ),
+          FinalAnswerCard(
+            answer: _solutionData!.finalAnswer,
+            bgColor: finalAnswerBg,
+            textColor: darkGreenText,
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildLoading() => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [CircularProgressIndicator(color: darkGreenText), const SizedBox(height: 16), const Text("AI กำลังคิดวิธีทำ...")]));
+  Widget _buildLoading() => Center(
+    child: Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        CircularProgressIndicator(color: darkGreenText),
+        const SizedBox(height: 16),
+        const Text("AI กำลังคิดวิธีทำ..."),
+      ],
+    ),
+  );
 
-  Widget _buildError() => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [const Icon(Icons.error_outline, color: Colors.red, size: 48), Text(_errorMessage!, style: const TextStyle(color: Colors.red)), ElevatedButton(onPressed: _fetchSolutionFromAI, child: const Text("ลองใหม่"))]));
+  Widget _buildError() => Center(
+    child: Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const Icon(Icons.error_outline, color: Colors.red, size: 48),
+        Text(_errorMessage!, style: const TextStyle(color: Colors.red)),
+        ElevatedButton(
+          onPressed: _fetchSolutionFromAI,
+          child: const Text("ลองใหม่"),
+        ),
+      ],
+    ),
+  );
 }
