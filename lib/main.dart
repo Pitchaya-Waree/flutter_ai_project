@@ -7,12 +7,12 @@ import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as path;
+import 'package:image_picker/image_picker.dart'; // 🔴 เพิ่ม Import
 
-// ----- API SERVICE (คุณต้องแก้ไขส่วนนี้) -----
+// ----- API SERVICE -----
 class ApiService {
-  final String _apiUrl =
-      'https://api.example.com/solve'; // แทนที่ด้วย API URL จริงของคุณ
-  final String _apiKey = 'YOUR_API_KEY'; // แทนที่ด้วย API Key ของคุณ
+  final String _apiUrl = 'https://api.example.com/solve';
+  final String _apiKey = 'YOUR_API_KEY';
 
   Future<Map<String, dynamic>?> solveEquation(File imageFile) async {
     try {
@@ -30,15 +30,11 @@ class ApiService {
       var response = await http.Response.fromStream(streamedResponse);
 
       if (response.statusCode == 200) {
-        print('Success: ${response.body}');
         return json.decode(response.body);
       } else {
-        print('Error: ${response.statusCode}');
-        print('Body: ${response.body}');
         return null;
       }
     } catch (e) {
-      print('Exception: $e');
       return null;
     }
   }
@@ -49,7 +45,8 @@ class MathSolverBottomNavBar extends StatelessWidget {
   final int selectedIndex;
   final Function(int) onItemTapped;
 
-  MathSolverBottomNavBar({
+  const MathSolverBottomNavBar({
+    super.key,
     required this.selectedIndex,
     required this.onItemTapped,
   });
@@ -77,7 +74,7 @@ class MathSolverBottomNavBar extends StatelessWidget {
               activeIcon: _buildActiveIcon(Icons.calculate_outlined),
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.summarize_outlined), // ใช้ไอคอน Σ ใกล้เคียงสุด
+              icon: Icon(Icons.summarize_outlined),
               label: 'Solutions',
               activeIcon: _buildActiveIcon(Icons.summarize_outlined),
             ),
@@ -140,17 +137,14 @@ class CameraOverlayPainter extends CustomPainter {
     final paintOverlay = Paint()
       ..color = overlayColor
       ..style = PaintingStyle.fill;
-
     final paintStroke = Paint()
       ..color = strokeColor
       ..style = PaintingStyle.stroke
       ..strokeWidth = cornerWidth;
 
-    // 1. วาด overlay ทึบแสงกึ่งโปร่งใสรอบนอก
     final rect = Rect.fromLTWH(0, 0, size.width, size.height);
     canvas.drawRect(rect, paintOverlay);
 
-    // 2. คำนวณและวาดกรอบใสตรงกลาง
     final centerX = size.width / 2;
     final centerY = size.height / 2;
     final frameRect = Rect.fromCenter(
@@ -164,14 +158,12 @@ class CameraOverlayPainter extends CustomPainter {
       Paint()..blendMode = BlendMode.clear,
     );
 
-    // 3. วาดมุมสี่เหลี่ยมสีเขียวด้านใน
     final rrect = RRect.fromRectAndRadius(
       frameRect,
       Radius.circular(borderRadius),
     );
     final path = Path();
 
-    // มุมซ้ายบน
     path.moveTo(rrect.left, rrect.top + cornerLength);
     path.lineTo(rrect.left, rrect.top + borderRadius);
     path.quadraticBezierTo(
@@ -182,7 +174,6 @@ class CameraOverlayPainter extends CustomPainter {
     );
     path.lineTo(rrect.left + cornerLength, rrect.top);
 
-    // มุมขวาบน
     path.moveTo(rrect.right - cornerLength, rrect.top);
     path.lineTo(rrect.right - borderRadius, rrect.top);
     path.quadraticBezierTo(
@@ -193,7 +184,6 @@ class CameraOverlayPainter extends CustomPainter {
     );
     path.lineTo(rrect.right, rrect.top + cornerLength);
 
-    // มุมขวาล่าง
     path.moveTo(rrect.right, rrect.bottom - cornerLength);
     path.lineTo(rrect.right, rrect.bottom - borderRadius);
     path.quadraticBezierTo(
@@ -204,7 +194,6 @@ class CameraOverlayPainter extends CustomPainter {
     );
     path.lineTo(rrect.right - cornerLength, rrect.bottom);
 
-    // มุมซ้ายล่าง
     path.moveTo(rrect.left + cornerLength, rrect.bottom);
     path.lineTo(rrect.left + borderRadius, rrect.bottom);
     path.quadraticBezierTo(
@@ -226,7 +215,7 @@ class CameraOverlayPainter extends CustomPainter {
 class ScanScreen extends StatefulWidget {
   final List<CameraDescription> cameras;
 
-  const ScanScreen({Key? key, required this.cameras}) : super(key: key);
+  const ScanScreen({super.key, required this.cameras});
 
   @override
   _ScanScreenState createState() => _ScanScreenState();
@@ -236,11 +225,16 @@ class _ScanScreenState extends State<ScanScreen> {
   late CameraController _controller;
   late Future<void> _initializeControllerFuture;
   final ApiService _apiService = ApiService();
+  final ImagePicker _picker = ImagePicker(); // 🔴 สร้างตัวแปรสำหรับเลือกรูป
 
   @override
   void initState() {
     super.initState();
-    _controller = CameraController(widget.cameras[0], ResolutionPreset.medium);
+    _controller = CameraController(
+      widget.cameras[0],
+      ResolutionPreset.medium,
+      enableAudio: false,
+    );
     _initializeControllerFuture = _controller.initialize();
   }
 
@@ -250,13 +244,9 @@ class _ScanScreenState extends State<ScanScreen> {
     super.dispose();
   }
 
-  Future<void> _captureAndSendToAI() async {
+  // ฟังก์ชันส่วนกลางสำหรับส่งรูปไป AI และแสดง Loading
+  Future<void> _processImage(File imageFile) async {
     try {
-      await _initializeControllerFuture;
-      final image = await _controller.takePicture();
-      final imageFile = File(image.path);
-
-      // แสดง Loading Dialog
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -271,13 +261,10 @@ class _ScanScreenState extends State<ScanScreen> {
         ),
       );
 
-      // ส่ง API
       final result = await _apiService.solveEquation(imageFile);
-
       Navigator.pop(context); // ปิด Loading Dialog
 
       if (result != null) {
-        // แสกนสำเร็จ: ไปหน้า Solutions (ต้องสร้างหน้าต่างนี้แยก)
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -286,13 +273,33 @@ class _ScanScreenState extends State<ScanScreen> {
           ),
         );
       } else {
-        // แสกนล้มเหลว
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("ขออภัย แสกนสมการไม่สำเร็จ ลองใหม่อีกครั้ง")),
         );
       }
     } catch (e) {
-      print('Error during capture/API call: $e');
+      print('Error: $e');
+    }
+  }
+
+  // 🔴 ฟังก์ชันสำหรับเปิด Gallery
+  Future<void> _pickFromGallery() async {
+    final XFile? pickedFile = await _picker.pickImage(
+      source: ImageSource.gallery,
+    );
+    if (pickedFile != null) {
+      _processImage(File(pickedFile.path));
+    }
+  }
+
+  // ฟังก์ชันสำหรับถ่ายรูป
+  Future<void> _capturePhoto() async {
+    try {
+      await _initializeControllerFuture;
+      final image = await _controller.takePicture();
+      _processImage(File(image.path));
+    } catch (e) {
+      print('Error capture: $e');
     }
   }
 
@@ -302,7 +309,7 @@ class _ScanScreenState extends State<ScanScreen> {
       appBar: AppBar(
         leading: IconButton(
           icon: Icon(Icons.arrow_back_ios, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () {},
         ),
         title: Text(
           "Solver",
@@ -324,27 +331,22 @@ class _ScanScreenState extends State<ScanScreen> {
           if (snapshot.connectionState == ConnectionState.done) {
             return Stack(
               children: [
-                // 1. Camera Preview
                 Positioned.fill(
                   child: AspectRatio(
                     aspectRatio: _controller.value.aspectRatio,
                     child: CameraPreview(_controller),
                   ),
                 ),
-
-                // 2. Camera Overlay (Scanning Frame)
                 Positioned.fill(
                   child: CustomPaint(
                     painter: CameraOverlayPainter(
-                      overlayColor: Colors.black54, // พื้นหลังกึ่งโปร่งใส
-                      frameWidth: 280, // ปรับตามต้องการ
-                      frameHeight: 180, // ปรับตามต้องการ
-                      strokeColor: Colors.green, // กรอบสีเขียว
+                      overlayColor: Colors.black54,
+                      frameWidth: 280,
+                      frameHeight: 180,
+                      strokeColor: Colors.green,
                     ),
                   ),
                 ),
-
-                // 3. Text instruction below frame
                 Positioned(
                   bottom: 220,
                   left: 0,
@@ -357,8 +359,6 @@ class _ScanScreenState extends State<ScanScreen> {
                     ),
                   ),
                 ),
-
-                // 4. Flash icon top-right
                 Positioned(
                   top: 20,
                   right: 20,
@@ -373,8 +373,6 @@ class _ScanScreenState extends State<ScanScreen> {
                     ),
                   ),
                 ),
-
-                // 5. Camera Controls (Gallery, Shutter, Editor)
                 Positioned(
                   bottom: 80,
                   left: 20,
@@ -382,7 +380,7 @@ class _ScanScreenState extends State<ScanScreen> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      // แกลเลอรี
+                      // 🔴 ปุ่ม Gallery ที่แก้ไขแล้ว
                       CircleAvatar(
                         backgroundColor: Colors.grey[200],
                         radius: 28,
@@ -391,12 +389,12 @@ class _ScanScreenState extends State<ScanScreen> {
                             Icons.photo_library_outlined,
                             color: Colors.grey[600],
                           ),
-                          onPressed: () {},
+                          onPressed:
+                              _pickFromGallery, // เรียกฟังก์ชันเปิด Gallery
                         ),
                       ),
-                      // ปุ่มถ่ายรูป
                       GestureDetector(
-                        onTap: _captureAndSendToAI,
+                        onTap: _capturePhoto,
                         child: Container(
                           width: 80,
                           height: 80,
@@ -404,7 +402,7 @@ class _ScanScreenState extends State<ScanScreen> {
                             shape: BoxShape.circle,
                             color: Colors.white,
                             border: Border.all(
-                              color: Color.fromRGBO(38, 92, 168, 1),
+                              color: Colors.grey[300]!,
                               width: 4,
                             ),
                           ),
@@ -414,13 +412,12 @@ class _ScanScreenState extends State<ScanScreen> {
                               height: 60,
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
-                                color: Colors.green[800], // สีเขียวเหมือนในรูป
+                                color: Colors.green[800],
                               ),
                             ),
                           ),
                         ),
                       ),
-                      // เครื่องคิดเลข
                       CircleAvatar(
                         backgroundColor: Colors.grey[200],
                         radius: 28,
@@ -438,7 +435,9 @@ class _ScanScreenState extends State<ScanScreen> {
               ],
             );
           } else {
-            return Center(child: CircularProgressIndicator());
+            return Center(
+              child: CircularProgressIndicator(color: Colors.green),
+            );
           }
         },
       ),
@@ -450,21 +449,25 @@ class _ScanScreenState extends State<ScanScreen> {
   }
 }
 
-// ----- SOLUTIONS SCREEN (หน้าสมมติที่จะแสดงผลลัพธ์) -----
+// ----- SOLUTIONS SCREEN -----
 class SolutionsScreen extends StatelessWidget {
   final Map<String, dynamic> resultData;
   final File imageFile;
 
   const SolutionsScreen({
-    Key? key,
+    super.key,
     required this.resultData,
     required this.imageFile,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Solution")),
+      appBar: AppBar(
+        title: Text("Solution", style: TextStyle(color: Colors.black)),
+        backgroundColor: Colors.white,
+        iconTheme: IconThemeData(color: Colors.black),
+      ),
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -476,7 +479,6 @@ class SolutionsScreen extends StatelessWidget {
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               SizedBox(height: 10),
-              // ตัวอย่าง API RESPONSE: {"equation": "1+2(x-3)=4/x"}
               Text(
                 resultData['equation'] ?? '',
                 style: TextStyle(fontSize: 24, color: Colors.blue),
@@ -487,7 +489,6 @@ class SolutionsScreen extends StatelessWidget {
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               SizedBox(height: 10),
-              // ตัวอย่าง API RESPONSE: {"solution": ["x=3/2", "x=4"]}
               Text(
                 resultData['solution']?.toString() ?? '',
                 style: TextStyle(fontSize: 18),
@@ -507,25 +508,15 @@ class SolutionsScreen extends StatelessWidget {
   }
 }
 
-class MyApp extends StatelessWidget {
-  final List<CameraDescription>? cameras;
-
-  const MyApp({Key? key, this.cameras}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Math Solver AI',
-      home: cameras != null && cameras!.isNotEmpty
-          ? ScanScreen(cameras: cameras!)
-          : const Scaffold(body: Center(child: Text('No cameras available'))),
-    );
-  }
-}
-
 // ----- MAIN ENTRY POINT -----
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final cameras = await availableCameras();
-  runApp(MyApp(cameras: cameras));
+  runApp(
+    MaterialApp(
+      title: 'Math Solver AI',
+      debugShowCheckedModeBanner: false,
+      home: ScanScreen(cameras: cameras),
+    ),
+  );
 }
