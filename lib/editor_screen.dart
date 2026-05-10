@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:math_expressions/math_expressions.dart'; // สำหรับการคำนวณ
-import 'solutions_screen.dart'; // นำเข้าหน้าวิธีทำ
+import 'package:math_expressions/math_expressions.dart'; 
+
+import 'solutions_screen.dart'; 
+import 'constants/app_colors.dart'; // 🔴 นำเข้าสี
+import 'widgets/math_display.dart'; // 🔴 นำเข้าหน้าจอแสดงผล
+import 'widgets/math_keyboard.dart'; // 🔴 นำเข้าแป้นพิมพ์
 
 class EditorScreen extends StatefulWidget {
   const EditorScreen({Key? key}) : super(key: key);
@@ -12,26 +16,17 @@ class EditorScreen extends StatefulWidget {
 class _EditorScreenState extends State<EditorScreen> {
   String _equation = "0";
   String _result = "";
-  bool _isScientific = false; // ตัวแปรสลับโหมดวิทย์/ปกติ
+  bool _isScientific = false;
 
-  // ชุดสีตามดีไซน์เดิม (Light Theme)
-  final Color bgColor = const Color(0xFFF8F9F4);
-  final Color greenKeyColor = const Color(0xFFCDEACD);
-  final Color redKeyColor = const Color(0xFFE28A7F);
-  final Color beigeKeyColor = const Color(0xFFE6DEC9);
-  final Color darkGreenBtnColor = const Color(0xFF4E6B50);
-  final Color lightGreyKeyColor = const Color(0xFFEFEFEF);
-
-  // ฟังก์ชันคำนวณผลลัพธ์แบบ Real-time
+  // ฟังก์ชันคำนวณผลลัพธ์
   void _calculate() {
     if (_equation.isEmpty || _equation == "0") return;
     try {
-      String finalEquation = _equation;
-      // แปลงสัญลักษณ์ให้เป็นรูปแบบที่ math_expressions เข้าใจ
-      finalEquation = finalEquation.replaceAll('×', '*');
-      finalEquation = finalEquation.replaceAll('÷', '/');
-      finalEquation = finalEquation.replaceAll('π', '3.14159265359');
-      finalEquation = finalEquation.replaceAll('√', 'sqrt');
+      String finalEquation = _equation
+          .replaceAll('×', '*')
+          .replaceAll('÷', '/')
+          .replaceAll('π', '3.14159265359')
+          .replaceAll('√', 'sqrt');
 
       Parser p = Parser();
       Expression exp = p.parse(finalEquation);
@@ -46,12 +41,12 @@ class _EditorScreenState extends State<EditorScreen> {
       });
     } catch (e) {
       setState(() {
-        _result = "Error"; // ถ้าสมการไม่สมบูรณ์ให้ขึ้น Error
+        _result = "Error";
       });
     }
   }
 
-  // ฟังก์ชันเมื่อกดปุ่มต่างๆ
+  // ฟังก์ชันจัดการเมื่อกดปุ่ม
   void _onKeyPress(String value) {
     setState(() {
       if (value == "AC") {
@@ -67,30 +62,14 @@ class _EditorScreenState extends State<EditorScreen> {
       } else if (value == "=") {
         _calculate();
       } else {
-        // เมื่อพิมพ์ตัวอักษรใหม่ ให้ซ่อนผลลัพธ์ (กลับไปเป็นสมการ)
-        if (_result.isNotEmpty) {
-          _result = "";
-        }
+        if (_result.isNotEmpty) _result = "";
 
-        // จัดการการพิมพ์สัญลักษณ์พิเศษ
         String addValue = value;
-        if (value == "x²") {
-          addValue = "^2";
-        } else if (value == "sin" ||
-            value == "cos" ||
-            value == "tan" ||
-            value == "ln" ||
-            value == "log") {
-          addValue = "$value(";
-        } else if (value == "√") {
-          addValue = "√(";
-        }
+        if (value == "x²") addValue = "^2";
+        else if (["sin", "cos", "tan", "ln", "log"].contains(value)) addValue = "$value(";
+        else if (value == "√") addValue = "√(";
 
-        if (_equation == "0") {
-          _equation = addValue;
-        } else {
-          _equation += addValue;
-        }
+        _equation = (_equation == "0") ? addValue : _equation + addValue;
       }
     });
   }
@@ -98,9 +77,9 @@ class _EditorScreenState extends State<EditorScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: bgColor,
+      backgroundColor: AppColors.bgColor,
       appBar: AppBar(
-        backgroundColor: bgColor,
+        backgroundColor: AppColors.bgColor,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.grey),
@@ -108,162 +87,31 @@ class _EditorScreenState extends State<EditorScreen> {
         ),
         title: const Text(
           "Solver",
-          style: TextStyle(
-            color: Color(0xFF8BA08E),
-            fontWeight: FontWeight.bold,
-            fontSize: 24,
-          ),
+          style: TextStyle(color: Color(0xFF8BA08E), fontWeight: FontWeight.bold, fontSize: 24),
         ),
         centerTitle: true,
       ),
       body: Column(
         children: [
-          // 1. กรอบแสดงผลสมการ (Display Area)
-          Container(
-            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            padding: const EdgeInsets.all(16),
-            constraints: const BoxConstraints(
-              minHeight: 160,
-            ), // ความสูงยืดหยุ่นได้
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.grey.shade300),
-            ),
-            child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.end, // 🔴 ดันทุกอย่างชิดขวา
-              children: [
-                // หัวข้อ โหมดแก้ไข และ ปุ่มถังขยะ
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      "โหมดแก้ไข",
-                      style: TextStyle(
-                        color: Colors.grey,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    InkWell(
-                      onTap: () => _onKeyPress("AC"),
-                      child: Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade100,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.delete_outline,
-                          size: 20,
-                          color: Colors.grey,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 30), // ดันเนื้อหาลงข้างล่าง
-                // 🔴 ใช้ AnimatedSwitcher เพื่อสร้างอนิเมชั่นสลับตัวเลข
-                AnimatedSwitcher(
-                  duration: const Duration(
-                    milliseconds: 300,
-                  ), // ความเร็วอนิเมชั่น
-                  transitionBuilder:
-                      (Widget child, Animation<double> animation) {
-                        return FadeTransition(
-                          opacity: animation,
-                          child: SlideTransition(
-                            position: Tween<Offset>(
-                              begin: const Offset(
-                                0,
-                                0.2,
-                              ), // เลื่อนจากข้างล่างขึ้นมา
-                              end: Offset.zero,
-                            ).animate(animation),
-                            child: child,
-                          ),
-                        );
-                      },
-                  child: Column(
-                    // 🔴 แก้ไข Key ตรงนี้: ให้มันจำแค่ว่า "มีผลลัพธ์หรือยัง" จะได้ไม่กระตุกเวลาพิมพ์ตัวเลขเพิ่ม
-                    key: ValueKey<bool>(
-                      _result.isNotEmpty && _result != "Error",
-                    ),
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      // ถ้ามีผลลัพธ์ (หลังกด =)
-                      if (_result.isNotEmpty && _result != "Error") ...[
-                        Text(
-                          _result, // แสดงผลลัพธ์เป็นตัวใหญ่
-                          style: TextStyle(
-                            fontSize: 40,
-                            fontWeight: FontWeight.bold,
-                            color: darkGreenBtnColor,
-                          ),
-                          textAlign: TextAlign.right,
-                        ),
-                        Text(
-                          _equation, // ดันสมการเป็นตัวเล็กสีเทาด้านล่าง
-                          style: const TextStyle(
-                            fontSize: 18,
-                            color: Colors.grey,
-                          ),
-                          textAlign: TextAlign.right,
-                        ),
-                      ]
-                      // ถ้ากำลังพิมพ์สมการ
-                      else ...[
-                        SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          reverse: true,
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Text(
-                                _equation,
-                                style: const TextStyle(
-                                  fontSize: 32,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.black87,
-                                ),
-                                textAlign: TextAlign.right,
-                              ),
-                              // เคอร์เซอร์กระพริบจำลอง
-                              Container(
-                                margin: const EdgeInsets.only(
-                                  left: 4,
-                                  bottom: 4,
-                                ),
-                                width: 2,
-                                height: 32,
-                                color: darkGreenBtnColor,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ],
-            ),
+          // 1. หน้าจอแสดงผล (เรียกใช้จากไฟล์ที่แยกไว้)
+          MathDisplay(
+            equation: _equation,
+            result: _result,
+            onClear: () => _onKeyPress("AC"),
           ),
 
           const SizedBox(height: 10),
 
-          // 2. แป้นพิมพ์ (Keypad Area)
+          // 2. แป้นพิมพ์ (เรียกใช้จากไฟล์ที่แยกไว้)
           Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: _isScientific
-                  ? _buildScientificKeypad()
-                  : _buildStandardKeypad(),
+            child: MathKeyboard(
+              isScientific: _isScientific,
+              onKeyPress: _onKeyPress,
+              onToggleMode: () => setState(() => _isScientific = !_isScientific),
             ),
           ),
 
-          // 3. ปุ่ม "แก้สมการ" (Solve Button)
+          // 3. ปุ่มแก้สมการ
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: SizedBox(
@@ -271,236 +119,28 @@ class _EditorScreenState extends State<EditorScreen> {
               height: 56,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: darkGreenBtnColor,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+                  backgroundColor: AppColors.darkGreenBtnColor,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   elevation: 0,
                 ),
                 onPressed: () {
-                  // กดปุ่มแก้สมการ ให้ส่งสมการ _equation ไปที่หน้า SolutionsScreen
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) =>
-                          SolutionsScreen(equation: _equation),
+                      builder: (context) => SolutionsScreen(equation: _equation),
                     ),
                   );
                 },
                 child: const Text(
                   "แก้สมการ",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
                 ),
               ),
             ),
           ),
-
           const SizedBox(height: 10),
         ],
       ),
     );
   }
-
-  // --- Layout แป้นพิมพ์ปกติ ---
-  Widget _buildStandardKeypad() {
-    return Column(
-      children: [
-        // แถวที่ 1: สามเหลี่ยมอยู่ซ้ายสุด คู่กับ AC
-        _buildRow([
-          _KeyModel(
-            icon: Icons.square_foot,
-            bgColor: lightGreyKeyColor,
-            iconColor: Colors.black54,
-            isToggle: true,
-          ),
-          _KeyModel(text: "AC", bgColor: redKeyColor, textColor: Colors.white),
-          _KeyModel(text: "x²", bgColor: lightGreyKeyColor),
-          _KeyModel(text: "π", bgColor: lightGreyKeyColor),
-          _KeyModel(
-            icon: Icons.backspace_outlined,
-            bgColor: redKeyColor,
-            iconColor: Colors.white,
-            isBackspace: true,
-          ),
-        ], isFiveColumn: true),
-        const SizedBox(height: 10),
-        _buildRow([
-          _KeyModel(text: "7"),
-          _KeyModel(text: "8"),
-          _KeyModel(text: "9"),
-          _KeyModel(text: "÷", bgColor: greenKeyColor),
-        ]),
-        const SizedBox(height: 10),
-        _buildRow([
-          _KeyModel(text: "4"),
-          _KeyModel(text: "5"),
-          _KeyModel(text: "6"),
-          _KeyModel(text: "×", bgColor: greenKeyColor),
-        ]),
-        const SizedBox(height: 10),
-        _buildRow([
-          _KeyModel(text: "1"),
-          _KeyModel(text: "2"),
-          _KeyModel(text: "3"),
-          _KeyModel(text: "-", bgColor: greenKeyColor),
-        ]),
-        const SizedBox(height: 10),
-        _buildRow([
-          _KeyModel(text: "0"),
-          _KeyModel(text: "."),
-          _KeyModel(text: "=", bgColor: beigeKeyColor),
-          _KeyModel(text: "+", bgColor: greenKeyColor),
-        ]),
-      ],
-    );
-  }
-
-  // --- Layout แป้นพิมพ์วิทยาศาสตร์ ---
-  Widget _buildScientificKeypad() {
-    return Column(
-      children: [
-        // แถวที่ 1
-        _buildRow([
-          _KeyModel(
-            icon: Icons.square_foot,
-            bgColor: greenKeyColor,
-            iconColor: darkGreenBtnColor,
-            isToggle: true,
-          ), // ไฮไลท์เมื่อเปิดวิทย์
-          _KeyModel(text: "AC", bgColor: redKeyColor, textColor: Colors.white),
-          _KeyModel(text: "sin", bgColor: lightGreyKeyColor),
-          _KeyModel(text: "cos", bgColor: lightGreyKeyColor),
-          _KeyModel(
-            icon: Icons.backspace_outlined,
-            bgColor: redKeyColor,
-            iconColor: Colors.white,
-            isBackspace: true,
-          ),
-        ], isFiveColumn: true),
-        const SizedBox(height: 8),
-        // แถวที่ 2 (ฟังก์ชันวิทย์เพิ่มเติม)
-        _buildRow([
-          _KeyModel(text: "tan", bgColor: lightGreyKeyColor),
-          _KeyModel(text: "(", bgColor: lightGreyKeyColor),
-          _KeyModel(text: ")", bgColor: lightGreyKeyColor),
-          _KeyModel(text: "√", bgColor: lightGreyKeyColor),
-          _KeyModel(text: "^", bgColor: lightGreyKeyColor),
-        ], isFiveColumn: true),
-        const SizedBox(height: 8),
-        _buildRow([
-          _KeyModel(text: "7"),
-          _KeyModel(text: "8"),
-          _KeyModel(text: "9"),
-          _KeyModel(text: "÷", bgColor: greenKeyColor),
-        ]),
-        const SizedBox(height: 8),
-        _buildRow([
-          _KeyModel(text: "4"),
-          _KeyModel(text: "5"),
-          _KeyModel(text: "6"),
-          _KeyModel(text: "×", bgColor: greenKeyColor),
-        ]),
-        const SizedBox(height: 8),
-        _buildRow([
-          _KeyModel(text: "1"),
-          _KeyModel(text: "2"),
-          _KeyModel(text: "3"),
-          _KeyModel(text: "-", bgColor: greenKeyColor),
-        ]),
-        const SizedBox(height: 8),
-        _buildRow([
-          _KeyModel(text: "0"),
-          _KeyModel(text: "."),
-          _KeyModel(text: "=", bgColor: beigeKeyColor),
-          _KeyModel(text: "+", bgColor: greenKeyColor),
-        ]),
-      ],
-    );
-  }
-
-  // Helper สร้างแถว
-  Widget _buildRow(List<_KeyModel> keys, {bool isFiveColumn = false}) {
-    return Expanded(
-      child: Row(
-        children: keys.asMap().entries.map((entry) {
-          int idx = entry.key;
-          _KeyModel key = entry.value;
-          return Expanded(
-            child: Padding(
-              padding: EdgeInsets.only(
-                left: idx == 0 ? 0 : (isFiveColumn ? 6 : 12),
-              ),
-              child: _buildButton(key),
-            ),
-          );
-        }).toList(),
-      ),
-    );
-  }
-
-  // Helper สร้างปุ่มแต่ละปุ่ม
-  Widget _buildButton(_KeyModel key) {
-    return InkWell(
-      onTap: () {
-        if (key.isToggle) {
-          setState(() => _isScientific = !_isScientific);
-        } else if (key.isBackspace) {
-          _onKeyPress("⌫");
-        } else if (key.text != null) {
-          _onKeyPress(key.text!);
-        }
-      },
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        decoration: BoxDecoration(
-          color: key.bgColor ?? Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: key.bgColor == null
-                ? Colors.grey.shade300
-                : Colors.transparent,
-          ),
-        ),
-        child: Center(
-          child: key.icon != null
-              ? Icon(key.icon, color: key.iconColor ?? Colors.black54, size: 24)
-              : Text(
-                  key.text!,
-                  style: TextStyle(
-                    fontSize: key.text!.length > 2
-                        ? 18
-                        : 22, // ปรับขนาดตัวอักษรให้เล็กลงถ้าเป็นคำว่า sin, cos, tan
-                    color: key.textColor ?? Colors.black87,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-        ),
-      ),
-    );
-  }
-}
-
-// Model เก็บข้อมูลแต่ละปุ่มเพื่อให้จัดการง่ายขึ้น
-class _KeyModel {
-  final String? text;
-  final IconData? icon;
-  final Color? bgColor;
-  final Color? textColor;
-  final Color? iconColor;
-  final bool isToggle;
-  final bool isBackspace;
-
-  _KeyModel({
-    this.text,
-    this.icon,
-    this.bgColor,
-    this.textColor,
-    this.iconColor,
-    this.isToggle = false,
-    this.isBackspace = false,
-  });
 }
