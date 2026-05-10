@@ -7,7 +7,8 @@ import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as path;
-import 'package:image_picker/image_picker.dart'; // 🔴 เพิ่ม Import
+import 'package:image_picker/image_picker.dart';
+import 'editor_screen.dart';
 
 // ----- API SERVICE -----
 class ApiService {
@@ -426,7 +427,14 @@ class _ScanScreenState extends State<ScanScreen> {
                             Icons.calculate_outlined,
                             color: Colors.grey[600],
                           ),
-                          onPressed: () {},
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const EditorScreen(),
+                              ),
+                            );
+                          },
                         ),
                       ),
                     ],
@@ -443,7 +451,15 @@ class _ScanScreenState extends State<ScanScreen> {
       ),
       bottomNavigationBar: MathSolverBottomNavBar(
         selectedIndex: 0,
-        onItemTapped: (index) {},
+        onItemTapped: (index) {
+          if (index == 1) {
+            // ถ้ากดปุ่มที่ 2 (Editor)
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const EditorScreen()),
+            );
+          }
+        },
       ),
     );
   }
