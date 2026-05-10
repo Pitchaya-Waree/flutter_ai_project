@@ -9,6 +9,7 @@ import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as path;
 import 'package:image_picker/image_picker.dart';
 import 'editor_screen.dart';
+import 'solutions_screen.dart';
 
 // ----- API SERVICE -----
 class ApiService {
@@ -269,14 +270,17 @@ class _ScanScreenState extends State<ScanScreen> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) =>
-                SolutionsScreen(resultData: result, imageFile: imageFile),
+            builder: (context) => SolutionsScreen(
+              // 🔴 แก้จาก resultData: result เป็นด้านล่างนี้
+              equation: result['equation']?.toString(),
+              imageFile: imageFile,
+            ),
           ),
         );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("ขออภัย แสกนสมการไม่สำเร็จ ลองใหม่อีกครั้ง")),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('ไม่สามารถวิเคราะห์สมการได้')));
       }
     } catch (e) {
       print('Error: $e');
@@ -453,10 +457,19 @@ class _ScanScreenState extends State<ScanScreen> {
         selectedIndex: 0,
         onItemTapped: (index) {
           if (index == 1) {
-            // ถ้ากดปุ่มที่ 2 (Editor)
+            // กดปุ่ม Editor (ที่เคยทำไว้เผื่อต้องการ)
             Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => const EditorScreen()),
+            );
+          } else if (index == 2) {
+            // 🔴 กดปุ่ม Solutions
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                // ส่งค่าว่างๆ ไปก่อน เพราะเราแค่กดเข้ามาดูเฉยๆ ไม่ได้มีสมการส่งมา
+                builder: (context) => const SolutionsScreen(),
+              ),
             );
           }
         },
@@ -465,61 +478,16 @@ class _ScanScreenState extends State<ScanScreen> {
   }
 }
 
-// ----- SOLUTIONS SCREEN -----
-class SolutionsScreen extends StatelessWidget {
-  final Map<String, dynamic> resultData;
-  final File imageFile;
-
-  const SolutionsScreen({
-    super.key,
-    required this.resultData,
-    required this.imageFile,
-  });
+// ----- MAIN APP WRAPPER -----
+class MyApp extends StatelessWidget {
+  const MyApp({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text("Solution", style: TextStyle(color: Colors.black)),
-        backgroundColor: Colors.white,
-        iconTheme: IconThemeData(color: Colors.black),
-      ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                "สมการ:",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              SizedBox(height: 10),
-              Text(
-                resultData['equation'] ?? '',
-                style: TextStyle(fontSize: 24, color: Colors.blue),
-              ),
-              SizedBox(height: 20),
-              Text(
-                "ผลลัพธ์:",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              SizedBox(height: 10),
-              Text(
-                resultData['solution']?.toString() ?? '',
-                style: TextStyle(fontSize: 18),
-              ),
-              SizedBox(height: 20),
-              Text(
-                "รูปภาพที่แสกน:",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              SizedBox(height: 10),
-              Image.file(imageFile),
-            ],
-          ),
-        ),
-      ),
+    return const MaterialApp(
+      title: 'Math Solver AI',
+      debugShowCheckedModeBanner: false,
+      home: Scaffold(body: Center(child: CircularProgressIndicator())),
     );
   }
 }
